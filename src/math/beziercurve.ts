@@ -46,7 +46,6 @@ export class BezierCurve {
             recursivePoints[i] = this.points[i].clone()
         }
         while (recursivePointsCount > 1) {
-            log("iterate")
             for (let i = 0; i < recursivePointsCount - 1; i++) {
                 let rangeX = recursivePoints[i + 1].x - recursivePoints[i].x
                 let rangeY = recursivePoints[i + 1].y - recursivePoints[i].y
