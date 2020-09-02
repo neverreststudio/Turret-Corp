@@ -1,5 +1,9 @@
+/* imports */
+
 import { BezierCurve } from "math/beziercurve"
-import { MathUtils } from "math/utlis"
+import { MathUtils } from "../math/utils"
+
+/* systems */
 
 export class ParticleSystem implements ISystem {
     
@@ -89,6 +93,8 @@ export class ParticleSpawnerSystem implements ISystem {
         }
     }
 }
+
+/* components */
 
 @Component("ParticleBehaviour")
 export class ParticleBehaviour {
@@ -206,6 +212,12 @@ export class ParticleSpawner {
         // fire any callback
         if (this.onConfigureParticle && this.onConfigureParticle !== null) {
             this.onConfigureParticle(_particle)
+        }
+    }
+
+    burst(_count: number) {
+        for (let i = 0; i < _count; i++) {
+            this.spawn()
         }
     }
 

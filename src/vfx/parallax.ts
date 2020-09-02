@@ -18,7 +18,7 @@ export class ParallaxSystem implements ISystem {
             const transform = e.getComponent(Transform)
 
             // TODO : update the uvs based on the relative camera position and intended depth
-            const uvScale = 0.25
+            const uvScale = 0.35
             const uvScaleOffset = (1 - uvScale) / 2
             const uvs = [
                 0, 0,
