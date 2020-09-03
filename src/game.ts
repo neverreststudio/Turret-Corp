@@ -7,6 +7,8 @@ import { BezierCurve } from "./math/beziercurve"
 import { MathUtils } from "./math/utils"
 import { DelayedTask } from "./tasks/delayedtasks"
 
+import { SceneManager } from "./turretcorp/scenemanager"
+
 /* game manager */
 
 enum GameState {
@@ -51,16 +53,16 @@ class GameManagerSystem implements ISystem {
                         transform.position.addInPlace(Vector3.Up().scale(5 * _deltaTime))
                         if (transform.position.y >= 22.5) {
                             transform.position.y = 22.5
-                            openElevator()
                             gameManager.setState(GameState.InArena)
+                            openElevator()
                         }
                     }
                     else {
                         transform.position.addInPlace(Vector3.Up().scale(-5 * _deltaTime))
                         if (transform.position.y <= -0.5) {
                             transform.position.y = -0.5
-                            openElevator()
                             gameManager.setState(GameState.Outside)
+                            openElevator()
                         }
                     }
                 } break
@@ -120,11 +122,15 @@ const gameManager = new GameManagerBehaviour()
 gameManagerEntity.addComponent(gameManager)
 engine.addEntity(gameManagerEntity)
 
-// load the tower's exterior as the default starting point for the scene
-const towerExterior = new Entity()
-towerExterior.addComponent(new GLTFShape("src/models/bitgem/tower-exterior.glb"))
-towerExterior.addComponent(new Transform({ position: new Vector3(24, 0, 32) }))
-engine.addEntity(towerExterior)
+// create a scene manager
+const sceneManager = new SceneManager()
+
+// load the exterior scene and enable it
+sceneManager.loadExterior()
+sceneManager.enableExterior()
+
+// load the interior scene but leave it inactive
+sceneManager.loadInterior()
 
 // create an elevator
 const elevator = new Entity()
@@ -133,15 +139,15 @@ elevator.addComponent(new Transform({ position: new Vector3(24, -0.5, 2) }))
 engine.addEntity(elevator)
 
 const elevatorDoorsShape = new GLTFShape("src/models/bitgem/tower-elevator-doors.glb")
+
+const elevatorDoors = new Entity()
+elevatorDoors.addComponent(elevatorDoorsShape)
+elevatorDoors.addComponent(new Transform({ position: new Vector3(0, 0, 0) }))
 const elevatorDoorAnimator = new Animator()
 const elevatorDoorCloseClip = new AnimationState("doors_close", { looping: false })
 const elevatorDoorOpenClip = new AnimationState("doors_open", { looping: false })
 elevatorDoorAnimator.addClip(elevatorDoorCloseClip)
 elevatorDoorAnimator.addClip(elevatorDoorOpenClip)
-
-const elevatorDoors = new Entity()
-elevatorDoors.addComponent(elevatorDoorsShape)
-elevatorDoors.addComponent(new Transform({ position: new Vector3(0, 0, 0) }))
 elevatorDoors.addComponent(elevatorDoorAnimator)
 engine.addEntity(elevatorDoors)
 elevatorDoors.setParent(elevator)
@@ -149,7 +155,12 @@ elevatorDoors.setParent(elevator)
 const elevatorRearDoors = new Entity()
 elevatorRearDoors.addComponent(elevatorDoorsShape)
 elevatorRearDoors.addComponent(new Transform({ position: new Vector3(0, 0, 2.75) }))
-elevatorRearDoors.addComponent(elevatorDoorAnimator)
+const elevatorRearDoorAnimator = new Animator()
+const elevatorRearDoorCloseClip = new AnimationState("doors_close", { looping: false })
+const elevatorRearDoorOpenClip = new AnimationState("doors_open", { looping: false })
+elevatorRearDoorAnimator.addClip(elevatorRearDoorCloseClip)
+elevatorRearDoorAnimator.addClip(elevatorRearDoorOpenClip)
+elevatorRearDoors.addComponent(elevatorRearDoorAnimator)
 engine.addEntity(elevatorRearDoors)
 elevatorRearDoors.setParent(elevator)
 
@@ -179,6 +190,8 @@ const closeElevator = function(): boolean {
     // run the animations
     elevatorDoorOpenClip.stop()
     elevatorDoorCloseClip.play()
+    elevatorRearDoorOpenClip.stop()
+    elevatorRearDoorCloseClip.play()
 
     // time a dust particle burst with the door close animation
     new DelayedTask(() => {
@@ -191,27 +204,15 @@ const closeElevator = function(): boolean {
         // check if we're outside
         if (gameManager.state === GameState.Outside) {
 
-            // hide the exterior
-            engine.removeEntity(towerExterior)
-
-            // show the interior
-            engine.addEntity(towerArena)
-            engine.addEntity(sky)
-            engine.addEntity(skyline)
-            engine.addEntity(skyline2)
+            // switch from exterior to interior (automatically disables exterior)
+            sceneManager.enableInterior()
         }
         else {
 
             new DelayedTask(() => {
 
-                // hide the interior
-                engine.removeEntity(towerArena)
-                engine.removeEntity(sky)
-                engine.removeEntity(skyline)
-                engine.removeEntity(skyline2)
-
-                // show the exterior
-                engine.addEntity(towerExterior)
+                // switch from interior to exterior (automatically disables interior)
+                sceneManager.enableExterior()
             }, 1.5)
         }
 
@@ -231,8 +232,18 @@ const openElevator = function(): boolean {
     }
 
     // run the animations
-    elevatorDoorCloseClip.stop()
-    elevatorDoorOpenClip.play()
+    if (gameManager.state === GameState.Outside) {
+        elevatorRearDoorOpenClip.stop()
+        elevatorRearDoorCloseClip.play()
+        elevatorDoorCloseClip.stop()
+        elevatorDoorOpenClip.play()
+    }
+    else {
+        elevatorDoorOpenClip.stop()
+        elevatorDoorCloseClip.play()
+        elevatorRearDoorCloseClip.stop()
+        elevatorRearDoorOpenClip.play()
+    }
 
     // flag as open
     elevatorDoorsAreOpen = true
@@ -267,16 +278,11 @@ elevatorControls.addComponent(new OnClick((e) => {
 let elevatorDoorsAreOpen = false
 openElevator()
 
-// prepare the elevator shaft but don't activate it so it doesn't count towards limits
+// load the elevator shaft
 const towerShaft = new Entity()
 towerShaft.addComponent(new GLTFShape("src/models/bitgem/tower-shaft.glb"))
 towerShaft.addComponent(new Transform({ position: new Vector3(24, 0, 32) }))
 engine.addEntity(towerShaft)
-
-// prepare the arena but don't activate it so it doesn't count towards limits
-const towerArena = new Entity()
-towerArena.addComponent(new GLTFShape("src/models/bitgem/tower-arena.glb"))
-towerArena.addComponent(new Transform({ position: new Vector3(24, 0, 32) }))
 
 /* tests */
 
@@ -328,52 +334,7 @@ engine.addEntity(mySpawnerObject)
 // })
 // mySpawner.spawn()
 
-const skyTexture = new Texture("src/textures/sky.png", { samplingMode: 1, wrap: 0, hasAlpha: false })
-const skyMaterial = new Material()
-skyMaterial.transparencyMode = TransparencyMode.OPAQUE
-skyMaterial.albedoTexture = skyTexture
-skyMaterial.emissiveTexture = skyTexture
-skyMaterial.emissiveIntensity = 1
-skyMaterial.roughness = 1
-skyMaterial.metallic = 0
-const sky = new Entity()
-sky.addComponent(new Transform({ position: new Vector3(24, 33, 63), rotation: Quaternion.Euler(0, 0, 0), scale: new Vector3(48, 24, 1)}))
-const skyPlane = new PlaneShape()
-sky.addComponent(skyPlane)
-sky.addComponent(skyMaterial)
-sky.addComponent(new ParallaxComponent(skyPlane, 100))
 
-const skylineTexture = new Texture("src/textures/skyline-1.png", { samplingMode: 1, wrap: 2, hasAlpha: true })
-const skylineMaterial = new Material()
-skylineMaterial.transparencyMode = TransparencyMode.ALPHA_TEST
-skylineMaterial.alphaTest = 0.01
-skylineMaterial.albedoTexture = skylineTexture
-skylineMaterial.emissiveTexture = skylineTexture
-skylineMaterial.emissiveIntensity = 1
-skylineMaterial.roughness = 1
-skylineMaterial.metallic = 0
-const skyline = new Entity()
-skyline.addComponent(new Transform({ position: new Vector3(24, 34, 62.99), rotation: Quaternion.Euler(0, 0, 0), scale: new Vector3(48, 48, 1)}))
-const skylinePlane = new PlaneShape()
-skyline.addComponent(skylinePlane)
-skyline.addComponent(skylineMaterial)
-skyline.addComponent(new ParallaxComponent(skylinePlane, 45))
-
-const skyline2Texture = new Texture("src/textures/skyline-2.png", { samplingMode: 1, wrap: 2, hasAlpha: true })
-const skyline2Material = new Material()
-skyline2Material.transparencyMode = TransparencyMode.ALPHA_TEST
-skyline2Material.alphaTest = 0.01
-skyline2Material.albedoTexture = skyline2Texture
-skyline2Material.emissiveTexture = skyline2Texture
-skyline2Material.emissiveIntensity = 1
-skyline2Material.roughness = 1
-skyline2Material.metallic = 0
-const skyline2 = new Entity()
-skyline2.addComponent(new Transform({ position: new Vector3(24, 24, 62.98), rotation: Quaternion.Euler(0, 0, 0), scale: new Vector3(48, 48, 1)}))
-const skyline2Plane = new PlaneShape()
-skyline2.addComponent(skyline2Plane)
-skyline2.addComponent(skyline2Material)
-skyline2.addComponent(new ParallaxComponent(skyline2Plane, 15))
 
 
 
