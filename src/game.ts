@@ -96,7 +96,14 @@ elevator.onReachedBottom = (_elevator: ElevatorComponent) => {
     gameManager.setState(GameState.Outside)
 }
 elevator.onReachedTop = (_elevator: ElevatorComponent) => {
+    
+    // update the game state
     gameManager.setState(gameManager.isPrimaryPlayer ? GameState.InArena : GameState.InViewingArea)
+
+    // debug - spawn an enemy
+    new DelayedTask(() => {
+        const enemy = new Enemy(new Vector3(24, 25, 2), new Vector3(0, 0, 0))
+    }, 2, true)
 }
 
 // load the elevator shaft
@@ -150,9 +157,9 @@ const mySpawnerObject = new Entity()
 mySpawnerObject.addComponent(mySpawner)
 engine.addEntity(mySpawnerObject)
 
-// Input.instance.subscribe("BUTTON_DOWN", ActionButton.POINTER, false, (e) => {
-//     mySpawner.spawn()
-// })
+Input.instance.subscribe("BUTTON_DOWN", ActionButton.PRIMARY, false, (e) => {
+    movePlayerTo(new Vector3(16, 0, 0), new Vector3(24, 1, 0))
+})
 // mySpawner.spawn()
 
 
@@ -160,25 +167,8 @@ engine.addEntity(mySpawnerObject)
 
 
 
-// debug - move player straight to elevator
-movePlayerTo(new Vector3(24, 2, 0))
-
-// debug - draw out proposed enemy paths
-const enemyPath = [
-    new Vector3(24, 23, 0),
-    new Vector3(24, 23, 12),
-    new Vector3(32, 23, 12),
-    new Vector3(40, 23, 20),
-    new Vector3(40, 23, 32),
-    new Vector3(32, 23, 37),
-    new Vector3(24, 23, 34),
-    new Vector3(16, 23, 42),
-    new Vector3(21, 23, 50),
-    new Vector3(24, 23, 56)
-]
-for (let i = 0; i < enemyPath.length - 1; i++) {
-    new DebugRay(enemyPath[i], enemyPath[i + 1])
-}
+// debug - move player straight to elevator (slight offset to prevent collision flip out)
+movePlayerTo(new Vector3(16, 0, 0), new Vector3(24, 1, 0))
 
 /*
 
