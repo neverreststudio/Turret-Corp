@@ -8,6 +8,10 @@ export class SceneManager {
 
     /* fields */
 
+    // private
+    __exteriorEntities: Entity[]
+    __interiorEntities: Entity[]
+
     // state
     isExteriorEnabled = false
     isInteriorEnabled = false
@@ -17,9 +21,19 @@ export class SceneManager {
 
     // interior elements
     towerArena: Entity
+    turretLayout: Entity
     windowLayer1: Entity
     windowLayer2: Entity
     windowLayer3: Entity
+
+    /* constructor */
+
+    constructor() {
+
+        // prepare collections of entities for exterior/interior for more easily enabling/disabling in bulk
+        this.__exteriorEntities = []
+        this.__interiorEntities = []
+    }
 
     /* methods */
 
@@ -30,8 +44,10 @@ export class SceneManager {
             return
         }
 
-        // unregister the exterior from the engine
-        engine.removeEntity(this.towerExterior)
+        // iterate the exterior entities and unregister them
+        for (let i = 0; i < this.__exteriorEntities.length; i++) {
+            engine.removeEntity(this.__exteriorEntities[i])
+        }
 
         // flag as disabled
         this.isExteriorEnabled = false
@@ -44,13 +60,10 @@ export class SceneManager {
             return
         }
 
-        // unregister the interior from the engine
-        engine.removeEntity(this.towerExterior)
-
-        // unregister the window parallax
-        engine.removeEntity(this.windowLayer1)
-        engine.removeEntity(this.windowLayer2)
-        engine.removeEntity(this.windowLayer3)
+        // iterate the interior entities and unregister them
+        for (let i = 0; i < this.__interiorEntities.length; i++) {
+            engine.removeEntity(this.__interiorEntities[i])
+        }
 
         // flag as disabled
         this.isInteriorEnabled = false
@@ -66,8 +79,10 @@ export class SceneManager {
         // ensure the interior is disabled
         this.disableInterior()
 
-        // register the exterior with the engine
-        engine.addEntity(this.towerExterior)
+        // iterate the exterior entities and register them
+        for (let i = 0; i < this.__exteriorEntities.length; i++) {
+            engine.addEntity(this.__exteriorEntities[i])
+        }
 
         // flag as enabled
         this.isExteriorEnabled = true
@@ -83,13 +98,10 @@ export class SceneManager {
         // ensure the interior is disabled
         this.disableExterior()
 
-        // register the interior with the engine
-        engine.addEntity(this.towerArena)
-
-        // register the window parallax
-        engine.addEntity(this.windowLayer1)
-        engine.addEntity(this.windowLayer2)
-        engine.addEntity(this.windowLayer3)
+        // iterate the interior entities and register them
+        for (let i = 0; i < this.__interiorEntities.length; i++) {
+            engine.addEntity(this.__interiorEntities[i])
+        }
 
         // flag as enabled
         this.isInteriorEnabled = true
@@ -101,6 +113,7 @@ export class SceneManager {
         this.towerExterior = new Entity()
         this.towerExterior.addComponent(new GLTFShape("src/models/bitgem/tower-exterior.glb"))
         this.towerExterior.addComponent(new Transform({ position: new Vector3(24, 0, 32) }))
+        this.__exteriorEntities.push(this.towerExterior)
     }
 
     loadInterior() {
@@ -109,6 +122,13 @@ export class SceneManager {
         this.towerArena = new Entity()
         this.towerArena.addComponent(new GLTFShape("src/models/bitgem/tower-arena.glb"))
         this.towerArena.addComponent(new Transform({ position: new Vector3(24, 0, 32) }))
+        this.__interiorEntities.push(this.towerArena)
+
+        // load the turret layout
+        this.turretLayout = new Entity()
+        this.turretLayout.addComponent(new GLTFShape("src/models/bitgem/turret-layout.glb"))
+        this.turretLayout.addComponent(new Transform({ position: new Vector3(24, 0, 32)}))
+        this.__interiorEntities.push(this.turretLayout)
 
         // create the parallax layers for the "window"
         // --- layer 1 : sky
@@ -126,6 +146,7 @@ export class SceneManager {
         this.windowLayer1.addComponent(skyPlane)
         this.windowLayer1.addComponent(skyMaterial)
         this.windowLayer1.addComponent(new ParallaxComponent(skyPlane, 100))
+        this.__interiorEntities.push(this.windowLayer1)
         // --- layer 2 : distant buildings
         const skylineTexture = new Texture("src/textures/skyline-1.png", { samplingMode: 1, wrap: 2, hasAlpha: true })
         const skylineMaterial = new Material()
@@ -142,6 +163,7 @@ export class SceneManager {
         this.windowLayer2.addComponent(skylinePlane)
         this.windowLayer2.addComponent(skylineMaterial)
         this.windowLayer2.addComponent(new ParallaxComponent(skylinePlane, 45))
+        this.__interiorEntities.push(this.windowLayer2)
         // --- layer 3 : near buildings
         const skyline2Texture = new Texture("src/textures/skyline-2.png", { samplingMode: 1, wrap: 2, hasAlpha: true })
         const skyline2Material = new Material()
@@ -158,5 +180,6 @@ export class SceneManager {
         this.windowLayer3.addComponent(skyline2Plane)
         this.windowLayer3.addComponent(skyline2Material)
         this.windowLayer3.addComponent(new ParallaxComponent(skyline2Plane, 15))
+        this.__interiorEntities.push(this.windowLayer3)
     }
 }

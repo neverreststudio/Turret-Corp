@@ -1,5 +1,6 @@
 /* imports */
 
+import { DebugRay, DebugRayComponent, DebugRaySystem } from "./debug/ray"
 import { AnglesSpring, AnglesSpringSystem, PositionSpring, PositionSpringSystem } from "./physics/spring"
 import { ParallaxComponent, ParallaxSystem } from "./vfx/parallax"
 import { ParticleBehaviour, ParticleSpawner, ParticleSystem, ParticleSpawnerSystem } from "./vfx/particles"
@@ -7,100 +8,15 @@ import { BezierCurve } from "./math/beziercurve"
 import { MathUtils } from "./math/utils"
 import { DelayedTask } from "./tasks/delayedtasks"
 
+import { Enemy, EnemyComponent, EnemySystem } from "./turretcorp/enemy"
+import { GameManagerBehaviour, GameManagerSystem, GameState, GameManager } from "./turretcorp/gamemanager"
 import { SceneManager } from "./turretcorp/scenemanager"
-
-/* game manager */
-
-enum GameState {
-    Outside,
-    InElevator,
-    InArena,
-    InViewingArea
-}
-
-class GameManagerSystem implements ISystem {
-
-    /* field definitions */
-
-    // component group
-    gameManagers = engine.getComponentGroup(GameManagerBehaviour)
-
-    /* implementation of ISystem */
-
-    // called every frame
-    update(_deltaTime: number) {
-
-        // iterate all game managers
-        for (let entity of this.gameManagers.entities) {
-
-            // grab the component
-            const gameManager = entity.getComponent(GameManagerBehaviour)
-
-            // check the current state
-            switch (gameManager.state) {
-
-                // handle the player being outside (they haven't yet activated an elevator)
-                case GameState.Outside: {
-
-                } break
-
-                // handle the player being in the elevator (they have activated the elevator and begun travelling to a floor)
-                case GameState.InElevator: {
-
-                    // move the elevator to the target floor
-                    const transform = elevator.getComponent(Transform)
-                    if (gameManager.previousState === GameState.Outside) {
-                        transform.position.addInPlace(Vector3.Up().scale(5 * _deltaTime))
-                        if (transform.position.y >= 22.5) {
-                            transform.position.y = 22.5
-                            gameManager.setState(GameState.InArena)
-                            openElevator()
-                        }
-                    }
-                    else {
-                        transform.position.addInPlace(Vector3.Up().scale(-5 * _deltaTime))
-                        if (transform.position.y <= -0.5) {
-                            transform.position.y = -0.5
-                            gameManager.setState(GameState.Outside)
-                            openElevator()
-                        }
-                    }
-                } break
-
-                // handle the player being in the arena (they are the active player)
-                case GameState.InElevator: {
-
-                } break
-
-                // handle the player being in the viewing area (they are spectating another player)
-                case GameState.InElevator: {
-
-                } break
-            }
-        }
-    }
-
-}
-
-@Component("GameManagerBehaviour")
-class GameManagerBehaviour {
-
-    /* fields */
-
-    previousState = GameState.Outside
-    state = GameState.Outside
-
-    /* methods */
-    setState(_state: GameState) {
-        if (this.state === _state) {
-            return
-        }
-        this.previousState = this.state
-        this.state = _state
-    }
-}
+import { Elevator, ElevatorComponent, ElevatorSystem } from "./turretcorp/elevator"
 
 /* register systems */
+
+// debug
+engine.addSystem(new DebugRaySystem())
 
 // physics
 engine.addSystem(new PositionSpringSystem())
@@ -113,14 +29,13 @@ engine.addSystem(new ParticleSpawnerSystem())
 
 // tower corp
 engine.addSystem(new GameManagerSystem())
+engine.addSystem(new ElevatorSystem())
+engine.addSystem(new EnemySystem())
 
 /* scene setup */
 
 // create a game manager
-const gameManagerEntity = new Entity()
-const gameManager = new GameManagerBehaviour()
-gameManagerEntity.addComponent(gameManager)
-engine.addEntity(gameManagerEntity)
+const gameManager = new GameManager().getComponent(GameManagerBehaviour)
 
 // create a scene manager
 const sceneManager = new SceneManager()
@@ -133,65 +48,8 @@ sceneManager.enableExterior()
 sceneManager.loadInterior()
 
 // create an elevator
-const elevator = new Entity()
-elevator.addComponent(new GLTFShape("src/models/bitgem/tower-elevator.glb"))
-elevator.addComponent(new Transform({ position: new Vector3(24, -0.5, 2) }))
-engine.addEntity(elevator)
-
-const elevatorDoorsShape = new GLTFShape("src/models/bitgem/tower-elevator-doors.glb")
-
-const elevatorDoors = new Entity()
-elevatorDoors.addComponent(elevatorDoorsShape)
-elevatorDoors.addComponent(new Transform({ position: new Vector3(0, 0, 0) }))
-const elevatorDoorAnimator = new Animator()
-const elevatorDoorCloseClip = new AnimationState("doors_close", { looping: false })
-const elevatorDoorOpenClip = new AnimationState("doors_open", { looping: false })
-elevatorDoorAnimator.addClip(elevatorDoorCloseClip)
-elevatorDoorAnimator.addClip(elevatorDoorOpenClip)
-elevatorDoors.addComponent(elevatorDoorAnimator)
-engine.addEntity(elevatorDoors)
-elevatorDoors.setParent(elevator)
-
-const elevatorRearDoors = new Entity()
-elevatorRearDoors.addComponent(elevatorDoorsShape)
-elevatorRearDoors.addComponent(new Transform({ position: new Vector3(0, 0, 2.75) }))
-const elevatorRearDoorAnimator = new Animator()
-const elevatorRearDoorCloseClip = new AnimationState("doors_close", { looping: false })
-const elevatorRearDoorOpenClip = new AnimationState("doors_open", { looping: false })
-elevatorRearDoorAnimator.addClip(elevatorRearDoorCloseClip)
-elevatorRearDoorAnimator.addClip(elevatorRearDoorOpenClip)
-elevatorRearDoors.addComponent(elevatorRearDoorAnimator)
-engine.addEntity(elevatorRearDoors)
-elevatorRearDoors.setParent(elevator)
-
-const elevatorControls = new Entity()
-elevatorControls.addComponent(new GLTFShape("src/models/bitgem/tower-elevator-controls.glb"))
-elevatorControls.addComponent(new Transform())
-const elevatorControlsAnimator = new Animator()
-const elevatorControlsUpClip = new AnimationState("lever_up", { looping: false })
-const elevatorControlsDownClip = new AnimationState("lever_down", { looping: false })
-elevatorControlsAnimator.addClip(elevatorControlsUpClip)
-elevatorControlsAnimator.addClip(elevatorControlsDownClip)
-elevatorControls.addComponent(elevatorControlsAnimator)
-engine.addEntity(elevatorControls)
-elevatorControls.setParent(elevator)
-
-elevatorControlsUpClip.stop()
-elevatorControlsDownClip.play()
-
-// methods to handle opening/closing the elevator doors and any other related actions
-const closeElevator = function(): boolean {
-    
-    // can't open if already closed
-    if (!elevatorDoorsAreOpen) {
-        return false
-    }
-
-    // run the animations
-    elevatorDoorOpenClip.stop()
-    elevatorDoorCloseClip.play()
-    elevatorRearDoorOpenClip.stop()
-    elevatorRearDoorCloseClip.play()
+const elevator = new Elevator(new Vector3(24, -0.5, 2), new Vector3(24, gameManager.isPrimaryPlayer ? 22.5 : 44, 2)).getComponent(ElevatorComponent)
+elevator.onClosed = (_elevator: ElevatorComponent) => {
 
     // time a dust particle burst with the door close animation
     new DelayedTask(() => {
@@ -205,78 +63,41 @@ const closeElevator = function(): boolean {
         if (gameManager.state === GameState.Outside) {
 
             // switch from exterior to interior (automatically disables exterior)
-            sceneManager.enableInterior()
+            let distance = 3
+            let speed = elevator.speed
+            new DelayedTask(() => {
+                sceneManager.enableInterior()
+            }, distance / speed)
         }
         else {
 
+            // wait until the elevator has gone below it and remove the interior
+            let distance = 3 + (gameManager.isPrimaryPlayer ? 0 : (44 - 22.5))
+            let speed = elevator.speed
             new DelayedTask(() => {
+                sceneManager.disableInterior()
+            }, distance / speed)
 
-                // switch from interior to exterior (automatically disables interior)
+            // wait until the elevator has gone sufficiently low to show the exterior
+            distance = (gameManager.isPrimaryPlayer ? 22.5 : 44) + 0.5
+            distance -= 10
+            new DelayedTask(() => {
                 sceneManager.enableExterior()
-            }, 1.5)
+            }, distance / speed);
         }
 
         gameManager.setState(GameState.InElevator)
     }, 0.75)
-
-    // flag as close
-    elevatorDoorsAreOpen = false
-
-    return true
 }
-const openElevator = function(): boolean {
-    
-    // can't open if already open
-    if (elevatorDoorsAreOpen) {
-        return false
-    }
+elevator.onOpened = (_elevator: ElevatorComponent) => {
 
-    // run the animations
-    if (gameManager.state === GameState.Outside) {
-        elevatorRearDoorOpenClip.stop()
-        elevatorRearDoorCloseClip.play()
-        elevatorDoorCloseClip.stop()
-        elevatorDoorOpenClip.play()
-    }
-    else {
-        elevatorDoorOpenClip.stop()
-        elevatorDoorCloseClip.play()
-        elevatorRearDoorCloseClip.stop()
-        elevatorRearDoorOpenClip.play()
-    }
-
-    // flag as open
-    elevatorDoorsAreOpen = true
-
-    return true
 }
-
-elevatorControls.addComponent(new OnClick((e) => {
-
-    if (gameManager.state === GameState.InElevator) {
-        return
-    }
-
-    // toggle the lever
-    if (gameManager.state === GameState.Outside) {
-        elevatorControlsDownClip.stop()
-        elevatorControlsUpClip.play()
-        new DelayedTask(() => {
-            closeElevator()
-        }, 0.35)
-    }
-    else {
-        elevatorControlsUpClip.stop()
-        elevatorControlsDownClip.play()
-        new DelayedTask(() => {
-            closeElevator()
-        }, 0.35)
-    }
-}, { distance: 2 }))
-
-// by default, open the elevator and set as ground floor
-let elevatorDoorsAreOpen = false
-openElevator()
+elevator.onReachedBottom = (_elevator: ElevatorComponent) => {
+    gameManager.setState(GameState.Outside)
+}
+elevator.onReachedTop = (_elevator: ElevatorComponent) => {
+    gameManager.setState(gameManager.isPrimaryPlayer ? GameState.InArena : GameState.InViewingArea)
+}
 
 // load the elevator shaft
 const towerShaft = new Entity()
@@ -341,6 +162,23 @@ engine.addEntity(mySpawnerObject)
 
 // debug - move player straight to elevator
 movePlayerTo(new Vector3(24, 2, 0))
+
+// debug - draw out proposed enemy paths
+const enemyPath = [
+    new Vector3(24, 23, 0),
+    new Vector3(24, 23, 12),
+    new Vector3(32, 23, 12),
+    new Vector3(40, 23, 20),
+    new Vector3(40, 23, 32),
+    new Vector3(32, 23, 37),
+    new Vector3(24, 23, 34),
+    new Vector3(16, 23, 42),
+    new Vector3(21, 23, 50),
+    new Vector3(24, 23, 56)
+]
+for (let i = 0; i < enemyPath.length - 1; i++) {
+    new DebugRay(enemyPath[i], enemyPath[i + 1])
+}
 
 /*
 
