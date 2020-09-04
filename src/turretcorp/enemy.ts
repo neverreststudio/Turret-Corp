@@ -1,5 +1,6 @@
 import { MathUtils } from "../math/utils"
 import { DebugRay } from "../debug/ray"
+import { StatBar, StatBarComponent } from "./statbar"
 
 export class EnemySystem implements ISystem {
 
@@ -107,6 +108,9 @@ export class EnemySystem implements ISystem {
             let finalAngles = enemy.angles.add(rock)
             transform.rotation = Quaternion.Euler(0, finalAngles.y, 0)
             enemy.roller.getComponent(Transform).rotation = Quaternion.Euler(finalAngles.x, 0, finalAngles.z)
+
+            // update the stat bar
+            enemy.healthBar.position = transform.position.add(new Vector3(0, 2, 0))
         }
     }
 }
@@ -118,6 +122,7 @@ export class EnemyComponent {
 
     // references
     roller: Entity
+    healthBar: StatBarComponent
 
     // state
     isActive = true
@@ -162,10 +167,15 @@ export class Enemy extends Entity {
         child.addComponent(new BoxShape())
 
         // setup the enemy component
-        this.addComponent(new EnemyComponent(child, _position, _angles))
+        const enemyComponent = new EnemyComponent(child, _position, _angles)
+        this.addComponent(enemyComponent)
 
         // register the enemy with the engine
         engine.addEntity(this)
         engine.addEntity(child)
+
+        // setup a health bar
+        enemyComponent.healthBar = new StatBar().getComponent(StatBarComponent)
+        enemyComponent.healthBar.current = Math.random() * 100
     }
 }

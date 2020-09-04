@@ -25,6 +25,9 @@ export class ElevatorSystem implements ISystem {
             // check if the elevator is busy
             if (elevator.isBusy) {
 
+                // play the audio
+                elevator.__loopAudioSource.playing = true
+
                 // grab the transform
                 const transform = e.getComponent(Transform)
 
@@ -41,6 +44,7 @@ export class ElevatorSystem implements ISystem {
                             elevator.onReachedBottom(elevator)
                         }
                         elevator.open()
+                        elevator.__arriveAudioSource.playOnce()
                     }
                     else {
                         transform.position.addInPlace(dist.normalize().scale(elevator.speed * _deltaTime))
@@ -58,11 +62,17 @@ export class ElevatorSystem implements ISystem {
                             elevator.onReachedTop(elevator)
                         }
                         elevator.open()
+                        elevator.__arriveAudioSource.playOnce()
                     }
                     else {
                         transform.position.addInPlace(dist.normalize().scale(elevator.speed * _deltaTime))
                     }
                 }
+            }
+            else {
+
+                // stop the audio
+                elevator.__loopAudioSource.playing = false
             }
         }
     }
@@ -97,9 +107,15 @@ export class ElevatorComponent {
     isOpen: boolean
     isAtTop = false
 
+    // references
+    __loopAudioSource: AudioSource
+    __closeAudioSource: AudioSource
+    __arriveAudioSource: AudioSource
+    __leverAudioSource: AudioSource
+
     /* constructor */
 
-    constructor(_bottom: Vector3, _top: Vector3, _outerDoorOpenClip: AnimationState, _outerDoorCloseClip: AnimationState, _innerDoorOpenClip: AnimationState, _innerDoorCloseClip: AnimationState, _controlsUpClip: AnimationState, _controlsDownClip: AnimationState) {
+    constructor(_bottom: Vector3, _top: Vector3, _outerDoorOpenClip: AnimationState, _outerDoorCloseClip: AnimationState, _innerDoorOpenClip: AnimationState, _innerDoorCloseClip: AnimationState, _controlsUpClip: AnimationState, _controlsDownClip: AnimationState, _loopAudioSource: AudioSource, _closeAudioSource: AudioSource, _arriveAudioSource: AudioSource, _leverAudioSource: AudioSource) {
 
         // grab parameters
         this.bottom = _bottom.clone()
@@ -113,7 +129,13 @@ export class ElevatorComponent {
 
         // initialise controls state
         this.__controlsUpClip.stop()
-        this.__controlsDownClip.play()        
+        this.__controlsDownClip.play()
+
+        // initialise audio
+        this.__loopAudioSource = _loopAudioSource
+        this.__closeAudioSource = _closeAudioSource
+        this.__arriveAudioSource = _arriveAudioSource
+        this.__leverAudioSource = _leverAudioSource
 
         // initialise doors state
         this.open()
@@ -134,11 +156,18 @@ export class ElevatorComponent {
         this.__outerDoorOpenClip.stop()
         this.__outerDoorCloseClip.play()
 
+        // play the close sound in time with the animation
+        new DelayedTask(() => {
+            this.__closeAudioSource.playOnce()
+        }, 0.2)
+
         // flag as closed
         this.isOpen = false
 
         // flag as busy
-        this.isBusy = true
+        new DelayedTask(() => {
+            this.isBusy = true
+        }, 0.4)
 
         // fire any callback
         if (this.onClosed) {
@@ -203,6 +232,9 @@ export class ElevatorComponent {
             this.__controlsUpClip.play()
         }
 
+        // play audio
+        this.__leverAudioSource.playOnce()
+
         // after the controls animation has finished, close the doors
         new DelayedTask(() => {
             this.close()
@@ -218,6 +250,12 @@ export class Elevator extends Entity {
     static __elevatorShape: GLTFShape
     static __doorsShape: GLTFShape
     static __controlsShape: GLTFShape
+
+    // shared audio
+    static __loopAudio: AudioClip
+    static __closeAudio: AudioClip
+    static __arriveAudio: AudioClip
+    static __leverAudio: AudioClip
 
     /* fields */
 
@@ -238,6 +276,20 @@ export class Elevator extends Entity {
         }
         if (!Elevator.__controlsShape || Elevator.__controlsShape === null) {
             Elevator.__controlsShape = new GLTFShape("src/models/bitgem/tower-elevator-controls.glb")
+        }
+
+        // ensure the shared audio is loaded
+        if (!Elevator.__loopAudio || Elevator.__loopAudio === null) {
+            Elevator.__loopAudio = new AudioClip("src/audio/elevator-loop.mp3")
+        }
+        if (!Elevator.__closeAudio || Elevator.__closeAudio === null) {
+            Elevator.__closeAudio = new AudioClip("src/audio/elevator-close.mp3")
+        }
+        if (!Elevator.__arriveAudio || Elevator.__arriveAudio === null) {
+            Elevator.__arriveAudio = new AudioClip("src/audio/elevator-arrive.mp3")
+        }
+        if (!Elevator.__leverAudio || Elevator.__leverAudio === null) {
+            Elevator.__leverAudio = new AudioClip("src/audio/elevator-lever.mp3")
         }
 
         // setup the main mesh
@@ -281,7 +333,32 @@ export class Elevator extends Entity {
         controls.setParent(this)
 
         // add the elevator component
-        const elevatorComponent = this.addComponent(new ElevatorComponent(_bottom, _top, outerDoorOpenClip, outerDoorCloseClip, innerDoorOpenClip, innerDoorCloseClip, controlsUpClip, controlsDownClip))
+        const loopAudioSource = new AudioSource(Elevator.__loopAudio)
+        loopAudioSource.playing = false
+        loopAudioSource.loop = true
+        this.addComponent(loopAudioSource)
+        const closeAudioHolder = new Entity()
+        closeAudioHolder.addComponent(new Transform())
+        closeAudioHolder.setParent(this)
+        const closeAudioSource = new AudioSource(Elevator.__closeAudio)
+        closeAudioSource.playing = false
+        closeAudioSource.loop = false
+        closeAudioHolder.addComponent(closeAudioSource)
+        const arriveAudioHolder = new Entity()
+        arriveAudioHolder.addComponent(new Transform())
+        arriveAudioHolder.setParent(this)
+        const arriveAudioSource = new AudioSource(Elevator.__arriveAudio)
+        arriveAudioSource.playing = false
+        arriveAudioSource.loop = false
+        arriveAudioHolder.addComponent(arriveAudioSource)
+        const leverAudioHolder = new Entity()
+        leverAudioHolder.addComponent(new Transform())
+        leverAudioHolder.setParent(this)
+        const leverAudioSource = new AudioSource(Elevator.__leverAudio)
+        leverAudioSource.playing = false
+        leverAudioSource.loop = false
+        leverAudioHolder.addComponent(leverAudioSource)
+        const elevatorComponent = this.addComponent(new ElevatorComponent(_bottom, _top, outerDoorOpenClip, outerDoorCloseClip, innerDoorOpenClip, innerDoorCloseClip, controlsUpClip, controlsDownClip, loopAudioSource, closeAudioSource, arriveAudioSource, leverAudioSource))
 
         // hookup interaction with the controls
         controls.addComponent(new OnClick(
@@ -298,5 +375,8 @@ export class Elevator extends Entity {
         engine.addEntity(controls)
         engine.addEntity(innerDoors)
         engine.addEntity(outerDoors)
+        engine.addEntity(closeAudioHolder)
+        engine.addEntity(arriveAudioHolder)
+        engine.addEntity(leverAudioHolder)
     }
 }

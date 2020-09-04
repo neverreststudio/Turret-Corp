@@ -181,5 +181,16 @@ export class SceneManager {
         this.windowLayer3.addComponent(skyline2Material)
         this.windowLayer3.addComponent(new ParallaxComponent(skyline2Plane, 15))
         this.__interiorEntities.push(this.windowLayer3)
+
+        // todo : load in the servers
+        const serverShape = new GLTFShape("src/models/interior/server.glb")
+        const leftServer = new Entity()
+        leftServer.addComponent(new Transform({ position: new Vector3(7, 23, 58), rotation: Quaternion.Euler(0, -90, 0), scale: new Vector3(3, 3, 3) }))
+        leftServer.addComponent(serverShape)
+        engine.addEntity(leftServer)
+        const rightServer = new Entity()
+        rightServer.addComponent(new Transform({ position: new Vector3(41, 23, 58), rotation: Quaternion.Euler(0, 90, 0), scale: new Vector3(3, 3, 3) }))
+        rightServer.addComponent(serverShape)
+        engine.addEntity(rightServer)
     }
 }

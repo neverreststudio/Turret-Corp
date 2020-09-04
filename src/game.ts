@@ -12,6 +12,7 @@ import { Enemy, EnemyComponent, EnemySystem } from "./turretcorp/enemy"
 import { GameManagerBehaviour, GameManagerSystem, GameState, GameManager } from "./turretcorp/gamemanager"
 import { SceneManager } from "./turretcorp/scenemanager"
 import { Elevator, ElevatorComponent, ElevatorSystem } from "./turretcorp/elevator"
+import { StatBarSystem } from "./turretcorp/statbar"
 
 /* register systems */
 
@@ -30,6 +31,7 @@ engine.addSystem(new ParticleSpawnerSystem())
 // tower corp
 engine.addSystem(new GameManagerSystem())
 engine.addSystem(new ElevatorSystem())
+engine.addSystem(new StatBarSystem())
 engine.addSystem(new EnemySystem())
 
 /* scene setup */
@@ -165,7 +167,11 @@ Input.instance.subscribe("BUTTON_DOWN", ActionButton.PRIMARY, false, (e) => {
 
 
 
-
+// debug - spawn an enemy on the ground
+const testEnemy = new Enemy(new Vector3(8, 2, 8), Vector3.Zero()).getComponent(EnemyComponent)
+new DelayedTask(() => {
+    testEnemy.targetPosition = new Vector3(MathUtils.getRandomBetween(2, 14), 2, MathUtils.getRandomBetween(2, 14))
+}, 1, true)
 
 // debug - move player straight to elevator (slight offset to prevent collision flip out)
 movePlayerTo(new Vector3(16, 0, 0), new Vector3(24, 1, 0))
