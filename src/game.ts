@@ -8,11 +8,12 @@ import { BezierCurve } from "./math/beziercurve"
 import { MathUtils } from "./math/utils"
 import { DelayedTask } from "./tasks/delayedtasks"
 
-import { Enemy, EnemyComponent, EnemySystem } from "./turretcorp/enemy"
+import { Enemy, EnemyComponent, EnemySystem, EnemyType } from "./turretcorp/enemy"
 import { GameManagerBehaviour, GameManagerSystem, GameState, GameManager } from "./turretcorp/gamemanager"
 import { SceneManager } from "./turretcorp/scenemanager"
 import { Elevator, ElevatorComponent, ElevatorSystem } from "./turretcorp/elevator"
 import { StatBarSystem } from "./turretcorp/statbar"
+import { TurretSystem, Turret, TurretComponent } from "./turretcorp/turret"
 
 /* register systems */
 
@@ -33,8 +34,12 @@ engine.addSystem(new GameManagerSystem())
 engine.addSystem(new ElevatorSystem())
 engine.addSystem(new StatBarSystem())
 engine.addSystem(new EnemySystem())
+engine.addSystem(new TurretSystem())
 
 /* scene setup */
+
+// debug - move player straight to elevator (slight offset to prevent collision flip out)
+movePlayerTo(new Vector3(16, 0, 0), new Vector3(24, 1, 0))
 
 // create a game manager
 const gameManager = new GameManager().getComponent(GameManagerBehaviour)
@@ -52,6 +57,8 @@ sceneManager.loadInterior()
 // create an elevator
 const elevator = new Elevator(new Vector3(24, -0.5, 2), new Vector3(24, gameManager.isPrimaryPlayer ? 22.5 : 44, 2)).getComponent(ElevatorComponent)
 elevator.onClosed = (_elevator: ElevatorComponent) => {
+
+    elevator.top = new Vector3(24, gameManager.isPrimaryPlayer ? 22.5 : 44, 2)
 
     // time a dust particle burst with the door close animation
     new DelayedTask(() => {
@@ -104,8 +111,25 @@ elevator.onReachedTop = (_elevator: ElevatorComponent) => {
 
     // debug - spawn an enemy
     new DelayedTask(() => {
-        const enemy = new Enemy(new Vector3(24, 25, 2), new Vector3(0, 0, 0))
-    }, 2, true)
+        const enemy = new Enemy(Math.random() < 0.5 ? EnemyType.ChompyBoi : EnemyType.Squid, new Vector3(24, 25, 2), new Vector3(0, 0, 0))
+    }, 4, true)
+
+    // debug - spawn turrets in all locations
+    const turretLocations: Vector3[] = [
+        new Vector3(8, 24, 12),
+        new Vector3(40, 24, 8),
+        new Vector3(16, 24, 20),
+        new Vector3(32, 24, 20),
+        new Vector3(32, 24, 30),
+        new Vector3(12, 24, 36),
+        new Vector3(12, 24, 50),
+        new Vector3(24, 24, 42),
+        new Vector3(40, 24, 42),
+        new Vector3(32, 24, 50)
+    ]
+    for (let p of turretLocations) {
+        new Turret(p)
+    }
 }
 
 // load the elevator shaft
@@ -168,13 +192,14 @@ Input.instance.subscribe("BUTTON_DOWN", ActionButton.PRIMARY, false, (e) => {
 
 
 // debug - spawn an enemy on the ground
-const testEnemy = new Enemy(new Vector3(8, 2, 8), Vector3.Zero()).getComponent(EnemyComponent)
+const testEnemy = new Enemy(Math.random() < 0.5 ? EnemyType.ChompyBoi : EnemyType.Squid, new Vector3(8, 2, 8), Vector3.Zero()).getComponent(EnemyComponent)
+testEnemy.targetPosition = new Vector3(MathUtils.getRandomBetween(2, 14), 2, MathUtils.getRandomBetween(2, 14))
 new DelayedTask(() => {
     testEnemy.targetPosition = new Vector3(MathUtils.getRandomBetween(2, 14), 2, MathUtils.getRandomBetween(2, 14))
 }, 1, true)
 
-// debug - move player straight to elevator (slight offset to prevent collision flip out)
-movePlayerTo(new Vector3(16, 0, 0), new Vector3(24, 1, 0))
+// debug - spawn a turret
+const myTurret = new Turret(new Vector3(8, 0, 8))
 
 /*
 
@@ -219,3 +244,10 @@ sentryTransform.position = new Vector3(0, -100, 0)*/
 server.addComponent(new Transform({ position: new Vector3(32, 0, 24), scale: new Vector3(0.9, 0.9, 0.9) }))
 server.addComponent(new GLTFShape("src/models/interior/server.glb"))
 engine.addEntity(server)*/
+
+
+/*const server = new Entity()
+server.addComponent(new Transform({ position: new Vector3(32, 0, 24), scale: new Vector3(0.9, 0.9, 0.9) }))
+server.addComponent(new GLTFShape("src/textures/grasstest.glb"))
+engine.addEntity(server)
+*/

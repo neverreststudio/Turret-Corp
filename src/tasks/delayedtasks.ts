@@ -78,6 +78,14 @@ export class DelayedTask {
     delay = 0
     isRepeating = false
 
+    /* methods */
+
+    cancel() {
+        this.callback = null
+        this.delay = 0
+        this.isRepeating = false
+    }
+
     /* constructor */
     
     constructor(_callback: Function, _delay: number, _isRepeating: boolean = false) {

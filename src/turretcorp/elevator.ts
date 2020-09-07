@@ -21,6 +21,10 @@ export class ElevatorSystem implements ISystem {
 
             // grab the elevator component
             const elevator = e.getComponent(ElevatorComponent)
+            const transform = e.getComponent(Transform)
+
+            // prepare rotation
+            let angles = new Vector3(0, transform.eulerAngles.y, 0)
 
             // check if the elevator is busy
             if (elevator.isBusy) {
@@ -28,8 +32,8 @@ export class ElevatorSystem implements ISystem {
                 // play the audio
                 elevator.__loopAudioSource.playing = true
 
-                // grab the transform
-                const transform = e.getComponent(Transform)
+                // add a slight vibration
+                angles.z += Math.sin(transform.position.y * 10) * (elevator.isAtTop ? 0.1 : 0.2)
 
                 // check the movement direction
                 if (elevator.isAtTop) {
@@ -43,6 +47,7 @@ export class ElevatorSystem implements ISystem {
                         if (elevator.onReachedBottom) {
                             elevator.onReachedBottom(elevator)
                         }
+                        elevator.__rattle = 0.5
                         elevator.open()
                         elevator.__arriveAudioSource.playOnce()
                     }
@@ -61,6 +66,7 @@ export class ElevatorSystem implements ISystem {
                         if (elevator.onReachedTop) {
                             elevator.onReachedTop(elevator)
                         }
+                        elevator.__rattle = 0.5
                         elevator.open()
                         elevator.__arriveAudioSource.playOnce()
                     }
@@ -74,6 +80,13 @@ export class ElevatorSystem implements ISystem {
                 // stop the audio
                 elevator.__loopAudioSource.playing = false
             }
+
+            // apply rattle
+            angles.z += Math.sin(elevator.__rattle * 40) * elevator.__rattle * 3
+            elevator.__rattle = Math.max(0, elevator.__rattle - _deltaTime)
+
+            // apply rotation
+            transform.rotation = Quaternion.Euler(angles.x, angles.y, angles.z)
         }
     }
 }
@@ -101,6 +114,7 @@ export class ElevatorComponent {
     bottom: Vector3
     top: Vector3
     speed = 5
+    __rattle = 0
 
     // state
     isBusy = false

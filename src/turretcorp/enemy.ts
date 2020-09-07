@@ -59,21 +59,24 @@ export class EnemySystem implements ISystem {
 
             // check if we don't have a target position
             if (!enemy.targetPosition) {
+                enemy.pathIndex = Math.min(this.enemyPath.length - 1, Math.max(0, enemy.pathIndex))
                 enemy.targetPosition = this.enemyPath[enemy.pathIndex]
             }
 
             // check the remaining distance
             let dist = enemy.targetPosition.subtract(enemy.position.add(enemy.velocity.scale(0.1)))
             if (dist.length() < 2) {
-                enemy.pathIndex++
-                if (enemy.pathIndex >= this.enemyPath.length) {
-                    enemy.pathIndex = 0
+                if (enemy.pathIndex > -1) {
+                    enemy.pathIndex++
+                    if (enemy.pathIndex >= this.enemyPath.length) {
+                        enemy.pathIndex = 0
+                    }
+                    enemy.targetPosition = this.enemyPath[enemy.pathIndex]
                 }
-                enemy.targetPosition = this.enemyPath[enemy.pathIndex]
             }
 
             // set velocity based on target position
-            let speed = Math.min(dist.length(), enemy.speed)
+            //let speed = Math.min(dist.length(), enemy.speed)
             let targetVelocity = dist.normalize().scale(enemy.speed)
             let acceleration = targetVelocity.subtract(enemy.velocity)
             acceleration = acceleration.normalizeToNew().scale(Math.min(acceleration.length(), enemy.acceleration * _deltaTime))
@@ -99,9 +102,16 @@ export class EnemySystem implements ISystem {
             let rock = new Vector3((Math.sin(this.__time * 2 + 1) + 1) * -6, 0, Math.sin(this.__time * 5) * 3)
 
             // roll when turning
-            rock.x += enemy.velocity.length() * 5
+            enemy.__smoothedAcceleration.addInPlace(acceleration.scale(15 * _deltaTime)).subtractInPlace(enemy.__smoothedAcceleration.scale(5 * _deltaTime))
+            let forward = MathUtils.getForwardVector(new Vector3(0, enemy.angles.y, 0))
+            let right = MathUtils.getRightVector(new Vector3(0, enemy.angles.y, 0))
+            let rockAmount = Vector3.Dot(enemy.__smoothedAcceleration.normalize(), forward) * enemy.__smoothedAcceleration.length() * 30
+            let rollAmount = Vector3.Dot(enemy.__smoothedAcceleration.normalize(), right) * enemy.__smoothedAcceleration.length() * -30
+            rock.x += rockAmount
             //rock.x += acceleration.length() * 30
-            rock.z += enemy.turnVelocity * -0.1
+            rock.z += rollAmount + enemy.turnVelocity * -0.1
+            rock.x = MathUtils.clamp(rock.x, -50, 50)
+            rock.z = MathUtils.clamp(rock.z, -50, 50)
 
             // update the transform
             transform.position = enemy.position.add(bob)
@@ -137,7 +147,8 @@ export class EnemyComponent {
     turnForce = 30.0
     turnDampening = 3.0
     turnVelocity = 0.0
-    pathIndex = 0
+    pathIndex = -1
+    __smoothedAcceleration = Vector3.Zero()
 
     /* constructor */
 
@@ -146,25 +157,76 @@ export class EnemyComponent {
         this.position = _position
         this.angles = _angles
     }
+
+    /* methods */
+
+    takeDamage(_damage: number, _location: Vector3) {
+        const nudge = this.position.subtract(_location).normalize().scale(_damage * 1)
+        nudge.y = Math.min(1, Math.max(-1, nudge.y))
+        this.velocity.addInPlace(nudge)
+        this.turnVelocity += (1 - (Math.random() * 2)) * _damage * 2
+        this.healthBar.current = Math.max(this.healthBar.current - _damage, 0)
+        if (this.healthBar.current === 0) {
+            this.isActive = false
+        }
+    }
+}
+
+export enum EnemyType {
+    Squid,
+    ChompyBoi
 }
 
 export class Enemy extends Entity {
 
-    constructor(_position: Vector3, _angles: Vector3) {
+    /* static fields */
+
+    static __alienMesh1: GLTFShape
+    static __alienMesh2: GLTFShape
+
+    /* constructor */
+
+    constructor(_type: EnemyType, _position: Vector3, _angles: Vector3) {
 
         // call the base constructor
         super()
+
+        // ensure the shared mesh
+        if (!Enemy.__alienMesh1 || Enemy.__alienMesh1 === null) {
+            Enemy.__alienMesh1 = new GLTFShape("src/models/bitgem/alien_1.glb")
+        }
+        if (!Enemy.__alienMesh2 || Enemy.__alienMesh2 === null) {
+            Enemy.__alienMesh2 = new GLTFShape("src/models/bitgem/alien_2.glb")
+        }
 
         // setup the transform
         this.addComponent(new Transform({ position: _position, rotation: Quaternion.Euler(_angles.x, _angles.y, _angles.z) }))
 
         // create a child entity to handle rock/roll
         const child = new Entity()
-        child.addComponent(new Transform({ scale: new Vector3(1, 1.5, 2) }))
+        child.addComponent(new Transform())
         child.setParent(this)
 
         // setup the renderer
-        child.addComponent(new BoxShape())
+        switch (_type) {
+            case EnemyType.ChompyBoi: {
+                child.addComponent(Enemy.__alienMesh2)
+            } break;
+            case EnemyType.Squid: {
+                child.addComponent(Enemy.__alienMesh1)
+            } break;
+        }
+        const idleClip =  new AnimationState("Idle", { looping: true, speed: 1, weight: 1 })
+        const hitClip =  new AnimationState("Hit", { looping: false, speed: 1, weight: 1 })
+        const attackClip =  new AnimationState("Attack", { looping: false, speed: 1, weight: 1 })
+        const enemyAnimator = new Animator()
+        enemyAnimator.addClip(idleClip)
+        enemyAnimator.addClip(hitClip)
+        enemyAnimator.addClip(attackClip)
+        idleClip.play()
+        hitClip.stop()
+        attackClip.stop()
+        child.addComponent(enemyAnimator)
 
         // setup the enemy component
         const enemyComponent = new EnemyComponent(child, _position, _angles)
@@ -176,6 +238,5 @@ export class Enemy extends Entity {
 
         // setup a health bar
         enemyComponent.healthBar = new StatBar().getComponent(StatBarComponent)
-        enemyComponent.healthBar.current = Math.random() * 100
     }
 }
