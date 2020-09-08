@@ -181,7 +181,7 @@ export class ElevatorComponent {
         // flag as busy
         new DelayedTask(() => {
             this.isBusy = true
-        }, 0.4)
+        }, 0.8)
 
         // fire any callback
         if (this.onClosed) {

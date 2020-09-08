@@ -1,6 +1,8 @@
 import { MathUtils } from "../math/utils"
+import { SmokeParticles } from "./smokeparticles"
 import { DebugRay } from "../debug/ray"
 import { StatBar, StatBarComponent } from "./statbar"
+import { DelayedTask } from "../tasks/delayedtasks"
 
 export class EnemySystem implements ISystem {
 
@@ -58,10 +60,22 @@ export class EnemySystem implements ISystem {
             if (dist.length() < 2) {
                 if (enemy.pathIndex > -1) {
                     enemy.pathIndex++
+                    
+                    // if the enemy has reach the goal, stay there, do an attack, and blow up
                     if (enemy.pathIndex >= EnemySystem.enemyPath.length) {
-                        enemy.pathIndex = 0
+                        enemy.pathIndex = -1
+                        enemy.isActive = false
+                        enemy.__idleAnimation.stop()
+                        enemy.__hitAnimation.stop()
+                        enemy.__attackAnimation.reset()
+                        enemy.__attackAnimation.play()
+                        new DelayedTask(() => {
+                            enemy.takeDamage(e, 9999, enemy.position)
+                        }, enemy.type === EnemyType.ChompyBoi ? 1.35 : 1.15)
                     }
-                    enemy.targetPosition = EnemySystem.enemyPath[enemy.pathIndex]
+                    else {
+                        enemy.targetPosition = EnemySystem.enemyPath[enemy.pathIndex]
+                    }
                 }
             }
 
@@ -128,6 +142,9 @@ export class EnemyComponent {
     // state
     isActive = true
 
+    // behaviour
+    type: EnemyType
+
     // movement
     position: Vector3
     angles: Vector3
@@ -141,16 +158,26 @@ export class EnemyComponent {
     pathIndex = -1
     __smoothedAcceleration = Vector3.Zero()
 
+    // animations
+    __idleAnimation: AnimationState
+    __hitAnimation: AnimationState
+    __attackAnimation: AnimationState
+    __cancelHitTask: DelayedTask
+
     // callbacks
     onDeath: Function
 
     /* constructor */
 
-    constructor(_transform: Transform, _roller: Entity, _health: number, _position: Vector3, _angles: Vector3) {
+    constructor(_type: EnemyType, _transform: Transform, _roller: Entity, _idleAnimation: AnimationState, _hitAnimation: AnimationState, _attackAnimation: AnimationState, _health: number, _position: Vector3, _angles: Vector3) {
         
         // store the references
+        this.type = _type
         this.transform = _transform
         this.roller = _roller
+        this.__idleAnimation = _idleAnimation
+        this.__hitAnimation = _hitAnimation
+        this.__attackAnimation = _attackAnimation
     }
 
     /* methods */
@@ -201,12 +228,34 @@ export class EnemyComponent {
     }
 
     takeDamage(_entity: IEntity, _damage: number, _location: Vector3) {
+
+        // play the hit animation
+        this.__idleAnimation.stop()
+        this.__hitAnimation.reset()
+        this.__hitAnimation.play()
+        if (this.__cancelHitTask && this.__cancelHitTask !== null) {
+            this.__cancelHitTask.cancel()
+        }
+        this.__cancelHitTask = new DelayedTask(() => {
+            this.__hitAnimation.stop()
+            this.__idleAnimation.play()
+        }, 1.5)
+
+        // work out how much of a nudge to give
         const nudge = this.position.subtract(_location).normalize().scale(_damage * 1)
         nudge.y = Math.min(1, Math.max(-1, nudge.y))
         this.__velocity.addInPlace(nudge)
         this.__turnVelocity += (1 - (Math.random() * 2)) * _damage * 2
+
+        // reduce health
         this.healthBar.current = Math.max(this.healthBar.current - _damage, 0)
+
+        // if dead, kill
         if (this.healthBar.current === 0) {
+
+            // spawn some bonus particles to hide the enemy dissappearing
+            SmokeParticles.getInstance().emitSphere(15 + Math.random() * 8, this.transform.position, 0.2)
+
             this.kill()
         }
     }
@@ -283,7 +332,7 @@ export class Enemy extends Entity {
         child.addComponent(enemyAnimator)
 
         // setup the enemy component
-        const enemyComponent = new EnemyComponent(transform, child, _health, _position, _angles)
+        const enemyComponent = new EnemyComponent(_type, transform, child, idleClip, hitClip, attackClip, _health, _position, _angles)
         this.addComponent(enemyComponent)
 
         // register the enemy with the engine

@@ -15,7 +15,8 @@ import { GameManagerBehaviour, GameManagerSystem, GameState, GameManager } from 
 import { SceneManager } from "./turretcorp/scenemanager"
 import { Elevator, ElevatorComponent, ElevatorSystem } from "./turretcorp/elevator"
 import { StatBarSystem } from "./turretcorp/statbar"
-import { TurretSystem, Turret, TurretComponent } from "./turretcorp/turret"
+import { TurretSystem, Turret, TurretComponent, TurretType } from "./turretcorp/turret"
+import { SmokeParticles } from "./turretcorp/smokeparticles"
 
 /* register systems */
 
@@ -76,7 +77,16 @@ elevator.onClosed = (_elevator: ElevatorComponent) => {
 
     // time a dust particle burst with the door close animation
     new DelayedTask(() => {
-        mySpawner.burst(20)            
+        let smokePos = elevator.isAtTop ? elevator.top.clone() : elevator.bottom.clone()
+        if (elevator.isAtTop) {
+            smokePos.z = 3
+        }
+        else {
+            smokePos.z = 0.5
+        }
+        for (let y = 1; y < 4; y += 0.5) {
+            SmokeParticles.getInstance().emitSphere(5 + Math.random() * 3, smokePos.add(new Vector3(0, y, 0)), 0.2, 0.02, 0.08)
+        }
     }, 0.35)
 
     // stop spawning enemies
@@ -142,7 +152,7 @@ elevator.onReachedTop = (_elevator: ElevatorComponent) => {
         spawnEnemyTask.cancel()
     }
     spawnEnemyTask = new DelayedTask(() => {
-        const enemy = Enemy.spawn(Math.random() < 0.5 ? EnemyType.ChompyBoi : EnemyType.Squid, 25, new Vector3(24, 25, 2), new Vector3(0, 0, 0))
+        const enemy = Enemy.spawn(Math.random() < 0.5 ? EnemyType.ChompyBoi : EnemyType.Squid, 100, new Vector3(24, 25, 2), new Vector3(0, 0, 0))
     }, 4, true)
 
     // debug - spawn turrets in all locations
@@ -159,7 +169,24 @@ elevator.onReachedTop = (_elevator: ElevatorComponent) => {
         new Vector3(32, 24.5, 50)
     ]
     for (let p of turretLocations) {
-        new Turret(p)
+        const t = Math.round(Math.random() * TurretType.Generator)
+        switch (t) {
+            case 0:
+                new Turret(TurretType.Gun, p)
+                break;
+            case 1:
+                new Turret(TurretType.Rockets, p)
+                break;
+            case 2:
+                new Turret(TurretType.Mortar, p)
+                break;
+            case 3:
+                new Turret(TurretType.Stun, p)
+                break;
+            case 4:
+                new Turret(TurretType.Generator, p)
+                break;
+        }
     }
 }
 
@@ -172,7 +199,7 @@ engine.addEntity(towerShaft)
 /* tests */
 
 // create a particle spawner
-const mySpawner = new ParticleSpawner()
+/*const mySpawner = new ParticleSpawner()
 
 mySpawner.particleMinLifetime = 0.5
 mySpawner.particleMaxLifetime = 0.7
@@ -212,7 +239,7 @@ mySpawner.onCreateParticle = (_entity: Entity, _particle: ParticleBehaviour) => 
 
 const mySpawnerObject = new Entity()
 mySpawnerObject.addComponent(mySpawner)
-engine.addEntity(mySpawnerObject)
+engine.addEntity(mySpawnerObject)*/
 
 Input.instance.subscribe("BUTTON_DOWN", ActionButton.PRIMARY, false, (e) => {
     movePlayerTo(new Vector3(16, 0, 0), new Vector3(24, 1, 0))
@@ -223,17 +250,28 @@ Input.instance.subscribe("BUTTON_DOWN", ActionButton.PRIMARY, false, (e) => {
 
 
 // debug - spawn an enemy on the ground
-const testEnemy = Enemy.spawn(Math.random() < 0.5 ? EnemyType.ChompyBoi : EnemyType.Squid, 25, new Vector3(24, 2, 32), Vector3.Zero()).getComponent(EnemyComponent)
-testEnemy.targetPosition = new Vector3(MathUtils.getRandomBetween(16, 32), 2, MathUtils.getRandomBetween(16, 48))
-testEnemy.onDeath = () => {
-    testEnemyMover.cancel()
-}
-const testEnemyMover = new DelayedTask(() => {
+const testEnemyLocations = [
+    new Vector3(16, 2, 16),
+    new Vector3(32, 2, 16),
+    new Vector3(16, 2, 48),
+    new Vector3(32, 2, 48)
+]
+for (let i = 0; i < testEnemyLocations.length; i++) {
+    const testEnemy = Enemy.spawn(Math.random() < 0.5 ? EnemyType.ChompyBoi : EnemyType.Squid, 1000, testEnemyLocations[i], Vector3.Zero()).getComponent(EnemyComponent)
     testEnemy.targetPosition = new Vector3(MathUtils.getRandomBetween(16, 32), 2, MathUtils.getRandomBetween(16, 48))
-}, 1, true)
-
+    testEnemy.onDeath = () => {
+        testEnemyMover.cancel()
+    }
+    const testEnemyMover = new DelayedTask(() => {
+        testEnemy.targetPosition = new Vector3(MathUtils.getRandomBetween(16, 32), 2, MathUtils.getRandomBetween(16, 48))
+    }, 1, true)
+}
 // debug - spawn a turret
-const myTurret = new Turret(new Vector3(24, 0, 32))
+const myTurret = new Turret(TurretType.Gun, new Vector3(24, 0, 32)).getComponent(TurretComponent)
+myTurret.damage = 4
+myTurret.rateOfFire = 3
+myTurret.aimForce = 20
+myTurret.aimDampening = 5
 
 // debug - occasionally report out the player posisiton
 /*new DelayedTask(() => {

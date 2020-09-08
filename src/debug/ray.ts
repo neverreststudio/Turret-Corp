@@ -14,17 +14,21 @@ export class DebugRaySystem implements ISystem {
 
             // grab the ray component
             const ray = e.getComponent(DebugRayComponent)
-            if (ray.duration > 0) {
-                ray.duration -= _deltaTime
-                if (ray.duration <= 0) {
+            if (ray.remaining > 0) {
+                ray.remaining -= _deltaTime
+                if (ray.remaining <= 0) {
                     engine.removeEntity(e)
                     continue
                 }
             }
-            const dist = ray.end.subtract(ray.start)
+            let ratio = 1 - ray.remaining / ray.duration
+            ratio = Math.pow(ratio, 2)
+            //ratio = 1 - Math.pow(1 - ratio, 2.5)
+            const start = ray.trailOff ? Vector3.Lerp(ray.start, ray.end, ratio) : ray.start
+            const dist = ray.end.subtract(start)
             const transform = e.getComponent(Transform)
             transform.scale = new Vector3(0.05, 0.05, dist.length())
-            transform.position = ray.start.add(dist.scale(0.5))
+            transform.position = start.add(dist.scale(0.5))
             transform.lookAt(ray.end)
         }
     }
@@ -39,6 +43,8 @@ export class DebugRayComponent {
     end: Vector3
 
     duration: number
+    remaining: number
+    trailOff = false
 
     /* constructor */
 
@@ -48,14 +54,16 @@ export class DebugRayComponent {
         this.end = _end
 
         this.duration = _duration
+        this.remaining = _duration
     }
 }
 
 export class DebugRay extends Entity {
     
     static __material: Material
+    static __shape: BoxShape
 
-    constructor(_start: Vector3, _end: Vector3, _duration: number = 0, _addToEngine: boolean = true) {
+    constructor(_start: Vector3, _end: Vector3, _duration: number = 0, _addToEngine: boolean = true, _customShape: GLTFShape = null) {
 
         // ensure a shared material
         if (!DebugRay.__material || DebugRay.__material === null) {
@@ -76,14 +84,27 @@ export class DebugRay extends Entity {
 
         // add a box shape for rendering
         this.addComponent(DebugRay.__material)
-        const boxShape = new BoxShape()
-        boxShape.isPointerBlocker = false
-        boxShape.withCollisions = false
-        this.addComponent(boxShape)
+        if (_customShape === null) {
+            if (!DebugRay.__shape || DebugRay.__shape === null) {
+                DebugRay.__shape = new BoxShape()
+                DebugRay.__shape.isPointerBlocker = false
+                DebugRay.__shape.withCollisions = false
+            }
+            this.addComponent(DebugRay.__shape)
+        }
+        else {
+            this.addComponent(_customShape)
+        }
 
         // automatically register with the engine
         if (_addToEngine) {
             engine.addEntity(this)
         }
+    }
+
+    setCustomShape(_customShape: GLTFShape): Entity {
+        this.removeComponent(BoxShape)
+        this.addComponent(_customShape)
+        return this
     }
 }
