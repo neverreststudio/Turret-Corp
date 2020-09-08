@@ -6,6 +6,8 @@ import { StatBar, StatBarComponent } from "./statbar"
 import { SceneManager } from "./scenemanager"
 import { Enemy, EnemyComponent, EnemyType } from "./enemy"
 import { Elevator, ElevatorSystem } from "./elevator"
+import { Turret } from "./turret"
+import { TurretManagementSystem } from "./turretmanagement"
 
 export enum GameState {
     Outside,
@@ -136,6 +138,10 @@ export class GameManagerSystem implements ISystem {
                                 () => {
                                     
                                     // restart the game
+                                    // ---reset the game over state
+                                    this.__isShowingGameOver = false
+                                    // ---reset the turret manager
+                                    TurretManagementSystem.instance.reset()
                                     // ---reset enemy spawner
                                     gameManager.sinceLastEnemySpawn = 0
                                     // ---destroy all active enemies
@@ -146,12 +152,23 @@ export class GameManagerSystem implements ISystem {
                                             }
                                         }
                                     }
+                                    // ---destroy all turrets
+                                    if (Turret.__allTurrets && Turret.__allTurrets !== null) {
+                                        for (let i = 0; i < Turret.__allTurrets.length; i++) {
+                                            engine.removeEntity(Turret.__allTurrets[i])
+                                        }
+                                        Turret.__allTurrets = []
+                                    }
                                     // ---reset player health
                                     gameManager.playerHealthBar.current = gameManager.playerHealthBar.max
                                 },
                                 () => {
 
                                     // don't restart the game
+                                    // ---reset the game over state
+                                    this.__isShowingGameOver = false
+                                    // ---reset the turret manager
+                                    TurretManagementSystem.instance.reset()
                                     // ---reset enemy spawner
                                     gameManager.sinceLastEnemySpawn = 0
                                     // ---destroy all active enemies
@@ -160,6 +177,12 @@ export class GameManagerSystem implements ISystem {
                                             for (let j = 0; j < Enemy.__pools[i].length; j++) {
                                                 Enemy.__pools[i][j].getComponent(EnemyComponent).kill(true)
                                             }
+                                        }
+                                    }
+                                    // ---destroy all turrets
+                                    if (Turret.__allTurrets && Turret.__allTurrets !== null) {
+                                        for (let i = 0; i < Turret.__allTurrets.length; i++) {
+                                            engine.removeEntity(Turret.__allTurrets[i])
                                         }
                                     }
                                     // ---restore the elevator
@@ -227,6 +250,9 @@ export class GameManagerBehaviour {
         }
         this.previousState = this.state
         this.state = _state
+
+        // reset the turret manager
+        TurretManagementSystem.instance.reset()
 
         // update player health bar accordingly
         if (this.state === GameState.InArena) {

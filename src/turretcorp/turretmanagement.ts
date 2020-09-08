@@ -128,6 +128,12 @@ export class TurretManagementSystem implements ISystem {
         return newIcon
     }
 
+    reset() {
+        for (let i = 0; i < this.__turretLocations.length; i++) {
+            this.__turretLocations[i].turret = null
+        }
+    }
+
     /* implementation of ISystem */
 
     update(_deltaTime: number) {

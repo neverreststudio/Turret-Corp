@@ -102,6 +102,14 @@ elevator.onClosed = (_elevator: ElevatorComponent) => {
             }
         }
 
+        // destroy all turrets
+        if (Turret.__allTurrets && Turret.__allTurrets !== null) {
+            for (let i = 0; i < Turret.__allTurrets.length; i++) {
+                engine.removeEntity(Turret.__allTurrets[i])
+            }
+            Turret.__allTurrets = []
+        }
+
         // check if we're outside
         if (gameManager.state === GameState.Outside) {
 
@@ -195,9 +203,6 @@ const mySpawnerObject = new Entity()
 mySpawnerObject.addComponent(mySpawner)
 engine.addEntity(mySpawnerObject)*/
 
-Input.instance.subscribe("BUTTON_DOWN", ActionButton.PRIMARY, false, (e) => {
-    movePlayerTo(new Vector3(16, 0, 0), new Vector3(24, 1, 0))
-})
 // mySpawner.spawn()
 
 

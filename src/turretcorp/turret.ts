@@ -268,6 +268,9 @@ export class Turret extends Entity {
     static __stunHeadShape: GLTFShape
     static __generatorHeadShape: GLTFShape
 
+    // track live instances
+    static __allTurrets: Entity[]
+
     // reusable audio
     static __gunFireAudio: AudioClip
 
@@ -363,6 +366,12 @@ export class Turret extends Entity {
             } break
         }
         turretComponent.barrel = barrel.getComponent(Transform)
+
+        // track the turret
+        if (!Turret.__allTurrets || Turret.__allTurrets === null) {
+            Turret.__allTurrets = []
+        }
+        Turret.__allTurrets.push(this)
 
         // register the enemy with the engine
         engine.addEntity(this)
