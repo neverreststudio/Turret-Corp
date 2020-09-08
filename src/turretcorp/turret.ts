@@ -22,12 +22,15 @@ export class TurretSystem implements ISystem {
         // sort the enemies by how far along the path they are (always target the biggest threat in range)
         let enemies: __EnemyListItem[] = []
         for (let e of this.__allEnemies.entities) {
-            enemies.push({ id: e.uuid, component: e.getComponent(EnemyComponent)})
+            const enemyComponent = e.getComponent(EnemyComponent)
+            if (!enemyComponent.isActive) {
+                continue
+            }
+            enemies.push({ id: e.uuid, component: enemyComponent })
         }
-        if (enemies.length === 0) {
-            return
+        if (enemies.length > 0) {
+            enemies.sort((a, b) => { return a.component.pathIndex > b.component.pathIndex ? 1 : a.component.pathIndex < b.component.pathIndex ? -1 : 0 })
         }
-        enemies.sort((a, b) => { return a.component.pathIndex > b.component.pathIndex ? 1 : a.component.pathIndex < b.component.pathIndex ? -1 : 0 })
 
         // iterate all turrets
         for (let e of this.__allTurrets.entities) {
@@ -36,14 +39,24 @@ export class TurretSystem implements ISystem {
             const turret = e.getComponent(TurretComponent)
             const transform = e.getComponent(Transform)
 
-            // todo : find the optimal enemy to target
-            const enemyId = enemies[enemies.length - 1].id
-            const enemy = enemies[enemies.length - 1].component
+            // find the optimal enemy to target
+            let enemy: EnemyComponent = null
+            let dist = Vector3.Zero()
+            for (let i = enemies.length - 1; i > -1; i--) {
+                enemy = enemies[enemies.length - 1].component
+                dist = enemy.position.subtract(turret.pitcher.position.add(transform.position))
+                if (dist.length() <= turret.range) {
+                    break
+                }
+                enemy = null
+            }
 
             // aim at the enemy
-            const dist = enemy.position.subtract(turret.pitcher.position.add(transform.position))
-            let flatDist = new Vector3(dist.x, 0, dist.z)
-            let targetAngles = new Vector3(Math.atan2(dist.y, flatDist.length()) * -RAD2DEG, Math.atan2(dist.x, dist.z) * RAD2DEG, 0)
+            let targetAngles = new Vector3(0, 180, 0)
+            if (enemy !== null) {
+                let flatDist = new Vector3(dist.x, 0, dist.z)
+                targetAngles = new Vector3(Math.atan2(dist.y, flatDist.length()) * -RAD2DEG, Math.atan2(dist.x, dist.z) * RAD2DEG, 0)
+            }
             let angDif = targetAngles.subtract(turret.__angles)
             while (angDif.x > 180) {
                 angDif.x -= 360
@@ -72,42 +85,44 @@ export class TurretSystem implements ISystem {
 
             // handle firing
             turret.__sinceLastShot += turret.rateOfFire * _deltaTime
-            if (turret.__sinceLastShot < 0 || turret.__sinceLastShot >= 1) {
-                turret.__sinceLastShot = 0
-                turret.__fireAudio.playOnce()
-                //turret.__recoilVelocity += turret.recoilStrength
-                turret.__recoilLevel += turret.recoilStrength
-                const pitcherPos = turret.pitcher.position.add(transform.position)//.add(MathUtils.getUpVector(turret.__angles).scale(0.5))
-                let ray = PhysicsCast.instance.getRayFromPositions(pitcherPos, pitcherPos.add(MathUtils.getForwardVector(turret.__angles).scale(turret.range)))
-                PhysicsCast.instance.hitFirst(ray, (e: RaycastHitEntity) => {
-                    
-                    // get the start and end points for a visual effect
-                    let rayStart = new Vector3(ray.origin.x, ray.origin.y, ray.origin.z)
-                    let rayEnd = rayStart.add(new Vector3(e.ray.direction.x * e.ray.distance, e.ray.direction.y * e.ray.distance, e.ray.direction.z * e.ray.distance))
+            if (enemy !== null) {
+                if (turret.__sinceLastShot < 0 || turret.__sinceLastShot >= 1) {
+                    turret.__sinceLastShot = 0
+                    turret.__fireAudio.playOnce()
+                    //turret.__recoilVelocity += turret.recoilStrength
+                    turret.__recoilLevel += turret.recoilStrength
+                    const pitcherPos = turret.pitcher.position.add(transform.position)//.add(MathUtils.getUpVector(turret.__angles).scale(0.5))
+                    let ray = PhysicsCast.instance.getRayFromPositions(pitcherPos, pitcherPos.add(MathUtils.getForwardVector(turret.__angles).scale(turret.range)))
+                    PhysicsCast.instance.hitFirst(ray, (e: RaycastHitEntity) => {
+                        
+                        // get the start and end points for a visual effect
+                        let rayStart = new Vector3(ray.origin.x, ray.origin.y, ray.origin.z)
+                        let rayEnd = rayStart.add(new Vector3(e.ray.direction.x * e.ray.distance, e.ray.direction.y * e.ray.distance, e.ray.direction.z * e.ray.distance))
 
-                    // check something was hit
-                    if (e.didHit) {
+                        // check something was hit
+                        if (e.didHit) {
 
-                        // limit the ray length for visuals
-                        rayEnd = new Vector3(e.hitPoint.x, e.hitPoint.y, e.hitPoint.z)
+                            // limit the ray length for visuals
+                            rayEnd = new Vector3(e.hitPoint.x, e.hitPoint.y, e.hitPoint.z)
 
-                        // grab the parent of the hit entity (enemy colliders are sub-objects)
-                        const hitEnemy = engine.entities[e.entity.entityId].getParent()
-                        if (hitEnemy && hitEnemy !== null) {
+                            // grab the parent of the hit entity (enemy colliders are sub-objects)
+                            const hitEnemy = engine.entities[e.entity.entityId].getParent()
+                            if (hitEnemy && hitEnemy !== null) {
 
-                            // try to find an enemy component
-                            const hitEnemyComponent = hitEnemy.getComponent(EnemyComponent)
-                            if (hitEnemyComponent && hitEnemyComponent !== null) {
+                                // try to find an enemy component
+                                const hitEnemyComponent = hitEnemy.hasComponent(EnemyComponent) ? hitEnemy.getComponent(EnemyComponent) : null
+                                if (hitEnemyComponent && hitEnemyComponent !== null) {
 
-                                // damage the hit enemy
-                                hitEnemyComponent.takeDamage(turret.damage, new Vector3(e.hitPoint.x, e.hitPoint.y, e.hitPoint.z))
+                                    // damage the hit enemy
+                                    hitEnemyComponent.takeDamage(hitEnemy, turret.damage, new Vector3(e.hitPoint.x, e.hitPoint.y, e.hitPoint.z))
+                                }
                             }
                         }
-                    }
 
-                    // render the visual effect
-                    new DebugRay(rayStart, rayEnd, 0.2)
-                })
+                        // render the visual effect
+                        new DebugRay(rayStart, rayEnd, 0.2)
+                    })
+                }
             }
             turret.__recoilVelocity += (-turret.__recoilLevel * turret.recoilForce * _deltaTime) - (turret.__recoilVelocity * turret.recoilDampening * _deltaTime)
             turret.__recoilLevel += turret.__recoilVelocity * _deltaTime

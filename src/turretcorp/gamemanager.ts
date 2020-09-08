@@ -72,30 +72,34 @@ export class GameManagerSystem implements ISystem {
                         forward.x = -forward.z
                         forward.z = temp
                         const target = newTarget.add(forward)
-                        movePlayerTo({ x: newPosition.x, y: newPosition.y, z: newPosition.z });//, { x: target.x, y: target.y, z: target.z })
+                        movePlayerTo({ x: newPosition.x, y: newPosition.y, z: newPosition.z })//, { x: target.x, y: target.y, z: target.z })
                     }
-                    // ---west
-                    xDist = this.camera.position.x - 46
-                    zDist = this.camera.position.z - 32
-                    if (Math.abs(xDist) <= 1.5 && Math.abs(zDist) <= 3.5) {
-                        const newPosition = new Vector3(24 + zDist, this.camera.feetPosition.y, 2 - xDist)
-                        const newTarget = new Vector3(24 + zDist, this.camera.position.y, 2 - xDist)
-                        let temp = -forward.x
-                        forward.x = forward.z
-                        forward.z = temp
-                        const target = newTarget.add(forward)
-                        movePlayerTo({ x: newPosition.x, y: newPosition.y, z: newPosition.z });//, { x: target.x, y: target.y, z: target.z })
-                    }
-                    // ---north
-                    xDist = this.camera.position.x - 24
-                    zDist = this.camera.position.z - 62
-                    if (Math.abs(xDist) <= 3.5 && Math.abs(zDist) <= 1.5) {
-                        const newPosition = new Vector3(24 - xDist, this.camera.feetPosition.y, 2 - zDist)
-                        const newTarget = new Vector3(24 - xDist, this.camera.position.y, 2 - zDist)
-                        forward.x = -forward.x
-                        forward.z = -forward.z
-                        const target = newTarget.add(forward)
-                        movePlayerTo({ x: newPosition.x, y: newPosition.y, z: newPosition.z }, { x: target.x, y: target.y, z: target.z })
+                    else {
+                        // ---west
+                        xDist = this.camera.position.x - 46
+                        zDist = this.camera.position.z - 32
+                        if (Math.abs(xDist) <= 1.5 && Math.abs(zDist) <= 3.5) {
+                            const newPosition = new Vector3(24 + zDist, this.camera.feetPosition.y, 2 - xDist)
+                            const newTarget = new Vector3(24 + zDist, this.camera.position.y, 2 - xDist)
+                            let temp = -forward.x
+                            forward.x = forward.z
+                            forward.z = temp
+                            const target = newTarget.add(forward)
+                            movePlayerTo({ x: newPosition.x, y: newPosition.y, z: newPosition.z })//, { x: target.x, y: target.y, z: target.z })
+                        }
+                        else {
+                            // ---north
+                            xDist = this.camera.position.x - 24
+                            zDist = this.camera.position.z - 62
+                            if (Math.abs(xDist) <= 3.5 && Math.abs(zDist) <= 1.5) {
+                                const newPosition = new Vector3(24 - xDist, this.camera.feetPosition.y, 2 - zDist)
+                                const newTarget = new Vector3(24 - xDist, this.camera.position.y, 2 - zDist)
+                                forward.x = -forward.x
+                                forward.z = -forward.z
+                                const target = newTarget.add(forward)
+                                movePlayerTo({ x: newPosition.x, y: newPosition.y, z: newPosition.z })//, { x: target.x, y: target.y, z: target.z })
+                            }
+                        }
                     }
                 } break
 

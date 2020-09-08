@@ -54,7 +54,7 @@ export class EnemySystem implements ISystem {
             }
 
             // check the remaining distance
-            let dist = enemy.targetPosition.subtract(enemy.position.add(enemy.velocity.scale(0.1)))
+            let dist = enemy.targetPosition.subtract(enemy.position.add(enemy.__velocity.scale(0.1)))
             if (dist.length() < 2) {
                 if (enemy.pathIndex > -1) {
                     enemy.pathIndex++
@@ -68,15 +68,15 @@ export class EnemySystem implements ISystem {
             // set velocity based on target position
             //let speed = Math.min(dist.length(), enemy.speed)
             let targetVelocity = dist.normalize().scale(enemy.speed)
-            let acceleration = targetVelocity.subtract(enemy.velocity)
+            let acceleration = targetVelocity.subtract(enemy.__velocity)
             acceleration = acceleration.normalizeToNew().scale(Math.min(acceleration.length(), enemy.acceleration * _deltaTime))
-            enemy.velocity.addInPlace(acceleration)
+            enemy.__velocity.addInPlace(acceleration)
 
             // apply velocity
-            enemy.position.addInPlace(enemy.velocity.scale(_deltaTime))
+            enemy.position.addInPlace(enemy.__velocity.scale(_deltaTime))
 
             // turn to face direction of movement
-            let targetAngle = Math.atan2(enemy.velocity.x, enemy.velocity.z) * RAD2DEG
+            let targetAngle = Math.atan2(enemy.__velocity.x, enemy.__velocity.z) * RAD2DEG
             let angleDif = targetAngle - enemy.angles.y
             while (angleDif > 180) {
                 angleDif -= 360
@@ -84,8 +84,8 @@ export class EnemySystem implements ISystem {
             while (angleDif < -180) {
                 angleDif += 360
             }
-            enemy.turnVelocity += (angleDif * enemy.turnForce - enemy.turnVelocity * enemy.turnDampening) * _deltaTime
-            enemy.angles.y += enemy.turnVelocity * _deltaTime
+            enemy.__turnVelocity += (angleDif * enemy.turnForce - enemy.__turnVelocity * enemy.turnDampening) * _deltaTime
+            enemy.angles.y += enemy.__turnVelocity * _deltaTime
 
             // bob up and down
             let bob = new Vector3(0, Math.sin(this.__time * 4) * 0.2, 0)
@@ -99,7 +99,7 @@ export class EnemySystem implements ISystem {
             let rollAmount = Vector3.Dot(enemy.__smoothedAcceleration.normalize(), right) * enemy.__smoothedAcceleration.length() * -30
             rock.x += rockAmount
             //rock.x += acceleration.length() * 30
-            rock.z += rollAmount + enemy.turnVelocity * -0.1
+            rock.z += rollAmount + enemy.__turnVelocity * -0.1
             rock.x = MathUtils.clamp(rock.x, -50, 50)
             rock.z = MathUtils.clamp(rock.z, -50, 50)
 
@@ -121,6 +121,7 @@ export class EnemyComponent {
     /* fields */
 
     // references
+    transform: Transform
     roller: Entity
     healthBar: StatBarComponent
 
@@ -130,56 +131,118 @@ export class EnemyComponent {
     // movement
     position: Vector3
     angles: Vector3
-    velocity = Vector3.Zero()
+    __velocity = Vector3.Zero()
     acceleration = 10.0
     targetPosition: Vector3
     speed = 5.0
     turnForce = 30.0
     turnDampening = 3.0
-    turnVelocity = 0.0
+    __turnVelocity = 0.0
     pathIndex = -1
     __smoothedAcceleration = Vector3.Zero()
 
+    // callbacks
+    onDeath: Function
+
     /* constructor */
 
-    constructor(_roller: Entity, _position: Vector3, _angles: Vector3) {
+    constructor(_transform: Transform, _roller: Entity, _health: number, _position: Vector3, _angles: Vector3) {
+        
+        // store the references
+        this.transform = _transform
         this.roller = _roller
-        this.position = _position
-        this.angles = _angles
     }
 
     /* methods */
 
-    takeDamage(_damage: number, _location: Vector3) {
+    kill(_isInstant: boolean = false) {
+        
+        // disable the enemy
+        this.isActive = false
+        this.transform.scale = Vector3.Zero()
+        this.transform.position = new Vector3(24, -10, 32)
+        this.healthBar.position = new Vector3(24, -10, 32)
+
+        // fire any callback and clear it
+        if (this.onDeath && this.onDeath !== null) {
+            this.onDeath(this)
+            this.onDeath = null
+        }
+    }
+
+    reset(_health: number, _position: Vector3, _angles: Vector3) {
+
+        // store the transform data
+        this.position = _position
+        this.angles = _angles
+
+        // reset all physics
+        this.__smoothedAcceleration = Vector3.Zero()
+        this.__velocity = Vector3.Zero()
+        
+        // reset aiming
+        this.__turnVelocity = 0.0
+
+        // reset all pathing data
+        this.pathIndex = -1
+        this.targetPosition = null
+
+        // reset health
+        this.healthBar.current = _health
+        this.healthBar.max = _health
+        this.healthBar.position = this.position.add(new Vector3(0, 2, 0))
+
+        // initialise transform
+        this.transform.scale = Vector3.One()
+        this.transform.position = this.position
+
+        // make active
+        this.isActive = true
+    }
+
+    takeDamage(_entity: IEntity, _damage: number, _location: Vector3) {
         const nudge = this.position.subtract(_location).normalize().scale(_damage * 1)
         nudge.y = Math.min(1, Math.max(-1, nudge.y))
-        this.velocity.addInPlace(nudge)
-        this.turnVelocity += (1 - (Math.random() * 2)) * _damage * 2
+        this.__velocity.addInPlace(nudge)
+        this.__turnVelocity += (1 - (Math.random() * 2)) * _damage * 2
         this.healthBar.current = Math.max(this.healthBar.current - _damage, 0)
         if (this.healthBar.current === 0) {
-            this.isActive = false
+            this.kill()
         }
     }
 }
 
 export enum EnemyType {
-    Squid,
-    ChompyBoi
+    Squid = 0,
+    ChompyBoi = 1
 }
 
 export class Enemy extends Entity {
 
     /* static fields */
 
+    // reusable meshes
     static __alienMesh1: GLTFShape
     static __alienMesh2: GLTFShape
 
+    // pooling
+    static __expectingCreate = false
+    static __pools: Entity[][]
+    static __maxPoolSize = 20
+
     /* constructor */
 
-    constructor(_type: EnemyType, _position: Vector3, _angles: Vector3) {
+    constructor(_type: EnemyType, _health: number, _position: Vector3, _angles: Vector3) {
 
         // call the base constructor
         super()
+
+        // ensure we've come through the spawn method
+        if (!Enemy.__expectingCreate) {
+            error("Don't call the Enemy constructor directly - use the Spawn method.")
+            return
+        }
+        Enemy.__expectingCreate = false
 
         // ensure the shared mesh
         if (!Enemy.__alienMesh1 || Enemy.__alienMesh1 === null) {
@@ -190,7 +253,8 @@ export class Enemy extends Entity {
         }
 
         // setup the transform
-        this.addComponent(new Transform({ position: _position, rotation: Quaternion.Euler(_angles.x, _angles.y, _angles.z) }))
+        const transform = new Transform({ position: _position, rotation: Quaternion.Euler(_angles.x, _angles.y, _angles.z) })
+        this.addComponent(transform)
 
         // create a child entity to handle rock/roll
         const child = new Entity()
@@ -219,7 +283,7 @@ export class Enemy extends Entity {
         child.addComponent(enemyAnimator)
 
         // setup the enemy component
-        const enemyComponent = new EnemyComponent(child, _position, _angles)
+        const enemyComponent = new EnemyComponent(transform, child, _health, _position, _angles)
         this.addComponent(enemyComponent)
 
         // register the enemy with the engine
@@ -228,5 +292,51 @@ export class Enemy extends Entity {
 
         // setup a health bar
         enemyComponent.healthBar = new StatBar().getComponent(StatBarComponent)
+        
+        // reset the enemy
+        enemyComponent.reset(_health, _position, _angles)
+
+        // add to the pool
+        Enemy.__pools[_type].push(this)
+    }
+
+    /* static methods */
+
+    static spawn(_type: EnemyType, _health: number, _position: Vector3, _angles: Vector3): Entity {
+
+        // ensure the pools are prepared
+        if (!Enemy.__pools || Enemy.__pools === null) {
+            Enemy.__pools = []
+        }
+        while (Enemy.__pools.length <= _type) {
+            Enemy.__pools.push([])
+        }
+
+        // check for an existing enemy from the pool
+        for (let i = 0; i < Enemy.__pools[_type].length; i++) {
+            const enemy = Enemy.__pools[_type][i]
+            if (enemy && enemy !== null) {
+                const enemyComponent = enemy.getComponent(EnemyComponent)
+                if (enemyComponent && enemyComponent !== null && !enemyComponent.isActive) {
+                    
+                    // prep the enemy
+                    enemyComponent.reset(_health, _position, _angles)
+
+                    // return it
+                    return enemy
+                }
+            }
+        }
+
+        // if there is no room left in the pool then we'll have to give up
+        if (Enemy.__pools[_type].length >= Enemy.__maxPoolSize) {
+            return null
+        }
+
+        // prep for creation
+        Enemy.__expectingCreate = true
+
+        // create the enemy (automatically added to the pool) and return it
+        return new Enemy(_type, _health, _position, _angles)
     }
 }

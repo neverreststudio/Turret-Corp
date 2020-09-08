@@ -68,6 +68,7 @@ sceneManager.enableExterior()
 sceneManager.loadInterior()
 
 // create an elevator
+let spawnEnemyTask: DelayedTask = null
 const elevator = new Elevator(new Vector3(24, -0.5, 2), new Vector3(24, gameManager.isPrimaryPlayer ? 22.5 : 44, 2)).getComponent(ElevatorComponent)
 elevator.onClosed = (_elevator: ElevatorComponent) => {
 
@@ -78,9 +79,23 @@ elevator.onClosed = (_elevator: ElevatorComponent) => {
         mySpawner.burst(20)            
     }, 0.35)
 
+    // stop spawning enemies
+    if (spawnEnemyTask !== null) {
+        spawnEnemyTask.cancel()
+    }
+
     // change the game state
     new DelayedTask(() => {
         
+        // destroy all active enemies
+        if (Enemy.__pools && Enemy.__pools !== null) {
+            for (let i = 0; i < Enemy.__pools.length; i++) {
+                for (let j = 0; j < Enemy.__pools[i].length; j++) {
+                    Enemy.__pools[i][j].getComponent(EnemyComponent).kill(true)
+                }
+            }
+        }
+
         // check if we're outside
         if (gameManager.state === GameState.Outside) {
 
@@ -122,9 +137,12 @@ elevator.onReachedTop = (_elevator: ElevatorComponent) => {
     // update the game state
     gameManager.setState(gameManager.isPrimaryPlayer ? GameState.InArena : GameState.InViewingArea)
 
-    // debug - spawn an enemy
-    new DelayedTask(() => {
-        const enemy = new Enemy(Math.random() < 0.5 ? EnemyType.ChompyBoi : EnemyType.Squid, new Vector3(24, 25, 2), new Vector3(0, 0, 0))
+    // restart the enemy spawning task
+    if (spawnEnemyTask !== null) {
+        spawnEnemyTask.cancel()
+    }
+    spawnEnemyTask = new DelayedTask(() => {
+        const enemy = Enemy.spawn(Math.random() < 0.5 ? EnemyType.ChompyBoi : EnemyType.Squid, 25, new Vector3(24, 25, 2), new Vector3(0, 0, 0))
     }, 4, true)
 
     // debug - spawn turrets in all locations
@@ -205,9 +223,12 @@ Input.instance.subscribe("BUTTON_DOWN", ActionButton.PRIMARY, false, (e) => {
 
 
 // debug - spawn an enemy on the ground
-const testEnemy = new Enemy(Math.random() < 0.5 ? EnemyType.ChompyBoi : EnemyType.Squid, new Vector3(24, 2, 32), Vector3.Zero()).getComponent(EnemyComponent)
+const testEnemy = Enemy.spawn(Math.random() < 0.5 ? EnemyType.ChompyBoi : EnemyType.Squid, 25, new Vector3(24, 2, 32), Vector3.Zero()).getComponent(EnemyComponent)
 testEnemy.targetPosition = new Vector3(MathUtils.getRandomBetween(16, 32), 2, MathUtils.getRandomBetween(16, 48))
-new DelayedTask(() => {
+testEnemy.onDeath = () => {
+    testEnemyMover.cancel()
+}
+const testEnemyMover = new DelayedTask(() => {
     testEnemy.targetPosition = new Vector3(MathUtils.getRandomBetween(16, 32), 2, MathUtils.getRandomBetween(16, 48))
 }, 1, true)
 
