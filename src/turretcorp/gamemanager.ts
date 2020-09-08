@@ -193,7 +193,7 @@ export class GameManagerSystem implements ISystem {
                                     SceneManager.instance.disableInterior()
                                     SceneManager.instance.enableExterior()
                                     // ---move the player back down to the ground
-                                    movePlayerTo(new Vector3(24, 0, 16))
+                                    movePlayerTo(new Vector3(24, 0, 0))
                                 },
                                 "Yes",
                                 "No",
