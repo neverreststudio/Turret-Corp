@@ -199,7 +199,7 @@ export class SceneManager {
 
         // debug - render out the proposed enemy paths
         for (let i = 0; i < EnemySystem.enemyPath.length - 1; i++) {
-            this.__interiorEntities.push(new DebugRay(EnemySystem.enemyPath[i].subtract(new Vector3(0, 2, 0)), EnemySystem.enemyPath[i + 1].subtract(new Vector3(0, 2, 0)), 0, false))
+            this.__interiorEntities.push(new DebugRay(EnemySystem.enemyPath[i].subtract(new Vector3(0, 1.7, 0)), EnemySystem.enemyPath[i + 1].subtract(new Vector3(0, 1.7, 0)), 0, false))
         }
     }
 }
