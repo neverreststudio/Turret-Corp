@@ -25,7 +25,7 @@ export class TurretManagementSystem implements ISystem {
     
     __camera = Camera.instance
 
-    __interactionRange = 4
+    __interactionRange = 5
     __activeLocationIndex = -1
 
     __turretLocations: TurretLocation[] = [
@@ -164,6 +164,7 @@ export class TurretManagementSystem implements ISystem {
 
         // set up the shape with custom uvs
         const shape = new PlaneShape()
+        shape.withCollisions = false
         shape.uvs = [
             _u0, _v0,
             _u1, _v0,
@@ -283,8 +284,8 @@ export class TurretManagementSystem implements ISystem {
             const transform = allIcons[i]
             const angle = -i * Math.PI * 2 * this.__icon2Ratio / allIcons.length
             transform.position = new Vector3(
-                Math.sin(angle) * this.__icon2Ratio,
-                Math.cos(angle) * this.__icon2Ratio,
+                Math.sin(angle) * 0.8 * this.__icon2Ratio,
+                Math.cos(angle) * 0.8 * this.__icon2Ratio,
                 0
             )
             const scale = Math.max(0, this.__icon2Ratio)
@@ -295,11 +296,13 @@ export class TurretManagementSystem implements ISystem {
         if (this.__activeLocationIndex > -1) {
 
             // position the icons above the location
-            iconHolder.position = this.__turretLocations[this.__activeLocationIndex].position.add(new Vector3(0, 2, 0))
+            iconHolder.position = this.__turretLocations[this.__activeLocationIndex].position.add(new Vector3(0, 1.5, 0))
         }
 
         // always point the ui towards the camera
         iconHolder.lookAt(this.__camera.position)
-        iconHolder.translate(MathUtils.getForwardVectorQ(iconHolder.rotation).scale(2))
+        let forward = MathUtils.getForwardVectorQ(iconHolder.rotation)
+        forward.y = 0
+        iconHolder.translate(forward.normalize().scale(2))
     }
 }

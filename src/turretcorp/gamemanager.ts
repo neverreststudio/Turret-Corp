@@ -63,6 +63,9 @@ export class GameManagerSystem implements ISystem {
             const gameManager = entity.getComponent(GameManagerBehaviour)
             gameManager.isPrimaryPlayer = this.isPrimaryPlayer
 
+            // hide player score by default
+            gameManager.playerScoreLabel.uiText.visible = false
+
             // check the current state
             switch (gameManager.state) {
 
@@ -119,6 +122,10 @@ export class GameManagerSystem implements ISystem {
 
                 // handle the player being in the arena (they are the active player)
                 case GameState.InArena: {
+
+                    // show player score
+                    gameManager.playerScoreLabel.uiText.value = "Score: " + gameManager.playerScore
+                    gameManager.playerScoreLabel.uiText.visible = true            
 
                     // spawn enemies on a timer
                     gameManager.sinceLastEnemySpawn += _deltaTime
@@ -228,8 +235,12 @@ export class GameManagerBehaviour {
 
     playerHealthBar: StatBarComponent
 
+    playerScore = 0
+
     sinceLastEnemySpawn = 0
     enemySpawnDelay = 4
+
+    playerScoreLabel: ui.CornerLabel
 
     /* constructor */
 
@@ -240,6 +251,10 @@ export class GameManagerBehaviour {
         this.playerHealthBar.current = 100
         this.playerHealthBar.max = 100
         this.playerHealthBar.position = new Vector3(24, -10, 32)
+
+        this.playerScoreLabel = new ui.CornerLabel("Score: " + this.playerScore, -16, 16, Color4.White(), 48, true)
+        this.playerScoreLabel.uiText.hTextAlign = "right"
+        this.playerScoreLabel.uiText.visible = false
     }
 
     /* methods */
@@ -250,6 +265,9 @@ export class GameManagerBehaviour {
         }
         this.previousState = this.state
         this.state = _state
+
+        // reset score
+        this.playerScore = 0
 
         // reset the turret manager
         TurretManagementSystem.instance.reset()

@@ -259,6 +259,9 @@ export class EnemyComponent {
             // spawn some bonus particles to hide the enemy dissappearing
             SmokeParticles.getInstance().emitSphere(15 + Math.random() * 8, this.transform.position, 0.2)
 
+            // give the player a point
+            GameManagerBehaviour.instance.playerScore++
+
             this.kill()
         }
     }
