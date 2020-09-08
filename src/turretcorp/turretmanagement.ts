@@ -5,6 +5,15 @@ import { Turret, TurretType } from "./turret"
 
 /* class definition */
 
+class TurretLocation {
+    position: Vector3
+    turret: Entity
+    constructor(_x: number, _y: number, _z: number) {
+        this.position = new Vector3(_x, _y, _z)
+        this.turret = null
+    }
+}
+
 export class TurretManagementSystem implements ISystem {
 
     /* static fields */
@@ -18,17 +27,17 @@ export class TurretManagementSystem implements ISystem {
     __interactionRange = 4
     __activeLocationIndex = -1
 
-    __turretLocations: Vector3[] = [
-        new Vector3(8, 24.5, 12),
-        new Vector3(40, 24.5, 8),
-        new Vector3(16, 24.5, 20),
-        new Vector3(32, 24.5, 20),
-        new Vector3(32, 24.5, 30),
-        new Vector3(12, 24.5, 36),
-        new Vector3(12, 24.5, 50),
-        new Vector3(24, 24.5, 42),
-        new Vector3(40, 24.5, 42),
-        new Vector3(32, 24.5, 50)
+    __turretLocations: TurretLocation[] = [
+        new TurretLocation(8, 24.5, 12),
+        new TurretLocation(40, 24.5, 8),
+        new TurretLocation(16, 24.5, 20),
+        new TurretLocation(32, 24.5, 20),
+        new TurretLocation(32, 24.5, 30),
+        new TurretLocation(12, 24.5, 36),
+        new TurretLocation(12, 24.5, 50),
+        new TurretLocation(24, 24.5, 42),
+        new TurretLocation(40, 24.5, 42),
+        new TurretLocation(32, 24.5, 50)
     ]
 
     __iconMaterial: BasicMaterial
@@ -104,8 +113,12 @@ export class TurretManagementSystem implements ISystem {
 
         // add the onclick
         newIcon.addComponent(new OnClick(() => {
-            const position = this.__turretLocations[this.__activeLocationIndex]
+            if (this.__turretLocations[this.__activeLocationIndex].turret !== null) {
+                return
+            }
+            const position = this.__turretLocations[this.__activeLocationIndex].position
             const newTurret = new Turret(_type, position)
+            this.__turretLocations[this.__activeLocationIndex].turret = newTurret
         }, {
             hoverText: "Place a " + _name
         }))
@@ -127,7 +140,7 @@ export class TurretManagementSystem implements ISystem {
             let location = this.__turretLocations[l]
 
             // check if the player is near enough to interact
-            let dist = location.subtract(this.__camera.position)
+            let dist = location.position.subtract(this.__camera.position)
             if (Math.abs(dist.x) < this.__interactionRange) {
                 if (Math.abs(dist.z) < this.__interactionRange) {
 
@@ -142,10 +155,11 @@ export class TurretManagementSystem implements ISystem {
         const iconHolder = this.__iconHolder.getComponent(Transform)
 
         // animate the icons in/out
-        let targetRatio = this.__activeLocationIndex > -1 ? 1 : 0
+        const isShowing = this.__activeLocationIndex > -1 && this.__turretLocations[this.__activeLocationIndex].turret === null
+        let targetRatio = isShowing ? 1 : 0
         let dif = targetRatio - this.__iconRatio
         let acc = dif * this.__iconForce * _deltaTime
-        let dec = this.__iconVelocity * this.__iconDampening * _deltaTime
+        let dec = this.__iconVelocity * this.__iconDampening * (isShowing ? 1 : 2) * _deltaTime
         this.__iconVelocity += acc - dec
         this.__iconRatio += this.__iconVelocity * _deltaTime
         const allIcons = [
@@ -171,7 +185,7 @@ export class TurretManagementSystem implements ISystem {
         if (this.__activeLocationIndex > -1) {
 
             // position the icons above the location
-            iconHolder.position = this.__turretLocations[this.__activeLocationIndex].add(new Vector3(0, 1.5, 0))
+            iconHolder.position = this.__turretLocations[this.__activeLocationIndex].position.add(new Vector3(0, 1.5, 0))
         }
 
         // always point the ui towards the camera
