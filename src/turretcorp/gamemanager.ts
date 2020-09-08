@@ -3,6 +3,9 @@ import { DelayedTask } from "../tasks/delayedtasks"
 import { MathUtils } from "../math/utils"
 import { DebugRay } from "../debug/ray"
 import { StatBar, StatBarComponent } from "./statbar"
+import { SceneManager } from "./scenemanager"
+import { Enemy, EnemyComponent, EnemyType } from "./enemy"
+import { Elevator, ElevatorSystem } from "./elevator"
 
 export enum GameState {
     Outside,
@@ -26,6 +29,9 @@ export class GameManagerSystem implements ISystem {
     claimTask: DelayedTask
     id = Math.round(Math.random() * 10000).toString()
     camera = Camera.instance
+
+    // state
+    __isShowingGameOver = false;
 
     /* constructor */
 
@@ -110,12 +116,71 @@ export class GameManagerSystem implements ISystem {
                 } break
 
                 // handle the player being in the arena (they are the active player)
-                case GameState.InElevator: {
+                case GameState.InArena: {
 
+                    // spawn enemies on a timer
+                    gameManager.sinceLastEnemySpawn += _deltaTime
+                    if (gameManager.sinceLastEnemySpawn >= gameManager.enemySpawnDelay) {
+                        gameManager.sinceLastEnemySpawn = 0
+                        const enemy = Enemy.spawn(Math.random() < 0.5 ? EnemyType.ChompyBoi : EnemyType.Squid, 100, new Vector3(24, 25, 2), new Vector3(0, 0, 0))
+                    }
+
+                    // check for player death
+                    if (gameManager.playerHealthBar.current <= 0) {
+                        gameManager.playerHealthBar.current = 0
+                        if (!this.__isShowingGameOver) {
+                            this.__isShowingGameOver = true
+                            new ui.OptionPrompt(
+                                "Game Over",
+                                "Those pesky robots have hacked your server! Would you like to try again?",
+                                () => {
+                                    
+                                    // restart the game
+                                    // ---reset enemy spawner
+                                    gameManager.sinceLastEnemySpawn = 0
+                                    // ---destroy all active enemies
+                                    if (Enemy.__pools && Enemy.__pools !== null) {
+                                        for (let i = 0; i < Enemy.__pools.length; i++) {
+                                            for (let j = 0; j < Enemy.__pools[i].length; j++) {
+                                                Enemy.__pools[i][j].getComponent(EnemyComponent).kill(true)
+                                            }
+                                        }
+                                    }
+                                    // ---reset player health
+                                    gameManager.playerHealthBar.current = gameManager.playerHealthBar.max
+                                },
+                                () => {
+
+                                    // don't restart the game
+                                    // ---reset enemy spawner
+                                    gameManager.sinceLastEnemySpawn = 0
+                                    // ---destroy all active enemies
+                                    if (Enemy.__pools && Enemy.__pools !== null) {
+                                        for (let i = 0; i < Enemy.__pools.length; i++) {
+                                            for (let j = 0; j < Enemy.__pools[i].length; j++) {
+                                                Enemy.__pools[i][j].getComponent(EnemyComponent).kill(true)
+                                            }
+                                        }
+                                    }
+                                    // ---restore the elevator
+                                    ElevatorSystem.instance.forceAllToBottom()
+                                    // --change state
+                                    gameManager.setState(GameState.Outside)
+                                    // ---switch back to the exterior
+                                    SceneManager.instance.disableInterior()
+                                    SceneManager.instance.enableExterior()
+                                    // ---move the player back down to the ground
+                                    movePlayerTo(new Vector3(24, 0, 16))
+                                },
+                                "Yes",
+                                "No",
+                                true)
+                        }
+                    }
                 } break
 
                 // handle the player being in the viewing area (they are spectating another player)
-                case GameState.InElevator: {
+                case GameState.InViewingArea: {
 
                 } break
             }
@@ -139,6 +204,9 @@ export class GameManagerBehaviour {
     isPrimaryPlayer = true // TODO : needs to be determined through synchronisation
 
     playerHealthBar: StatBarComponent
+
+    sinceLastEnemySpawn = 0
+    enemySpawnDelay = 4
 
     /* constructor */
 

@@ -63,7 +63,7 @@ export class StatBar extends Entity {
 
     /* constructor */
 
-    constructor(_scale: number) {
+    constructor(_scale: number = 1) {
 
         // call the base constructor
         super()

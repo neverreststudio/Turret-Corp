@@ -10,6 +10,8 @@ export class SceneManager {
 
     /* fields */
 
+    static instance: SceneManager
+
     // private
     __exteriorEntities: Entity[]
     __interiorEntities: Entity[]
@@ -33,6 +35,8 @@ export class SceneManager {
     /* constructor */
 
     constructor() {
+
+        SceneManager.instance = this
 
         // prepare collections of entities for exterior/interior for more easily enabling/disabling in bulk
         this.__exteriorEntities = []

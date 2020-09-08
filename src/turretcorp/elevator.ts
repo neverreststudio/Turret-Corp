@@ -9,8 +9,35 @@ export class ElevatorSystem implements ISystem {
 
     /* fields */
 
+    static instance: ElevatorSystem
+
     // references
     __allElevators = engine.getComponentGroup(ElevatorComponent)
+
+    /* constructor */
+
+    constructor() {
+        ElevatorSystem.instance = this
+    }
+
+    /* methods */
+
+    forceAllToBottom() {
+        for (let e of this.__allElevators.entities) {
+            const elevator = e.getComponent(ElevatorComponent)
+            const transform = e.getComponent(Transform)
+            elevator.isAtTop = false
+            elevator.isBusy = false
+            elevator.isOpen = true
+            elevator.__innerDoorOpenClip.stop()
+            elevator.__innerDoorCloseClip.play()
+            elevator.__outerDoorCloseClip.stop()
+            elevator.__outerDoorOpenClip.play()
+            elevator.__controlsUpClip.stop()
+            elevator.__controlsDownClip.play()
+            transform.position = elevator.bottom
+        }
+    }
 
     /* implementation of ISystem */
 

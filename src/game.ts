@@ -71,7 +71,6 @@ sceneManager.enableExterior()
 sceneManager.loadInterior()
 
 // create an elevator
-let spawnEnemyTask: DelayedTask = null
 const elevator = new Elevator(new Vector3(24, -0.5, 2), new Vector3(24, gameManager.isPrimaryPlayer ? 22.5 : 44, 2)).getComponent(ElevatorComponent)
 elevator.onClosed = (_elevator: ElevatorComponent) => {
 
@@ -90,11 +89,6 @@ elevator.onClosed = (_elevator: ElevatorComponent) => {
             SmokeParticles.getInstance().emitSphere(5 + Math.random() * 3, smokePos.add(new Vector3(0, y, 0)), 0.2, 0.02, 0.08)
         }
     }, 0.35)
-
-    // stop spawning enemies
-    if (spawnEnemyTask !== null) {
-        spawnEnemyTask.cancel()
-    }
 
     // change the game state
     new DelayedTask(() => {
@@ -148,36 +142,6 @@ elevator.onReachedTop = (_elevator: ElevatorComponent) => {
     
     // update the game state
     gameManager.setState(gameManager.isPrimaryPlayer ? GameState.InArena : GameState.InViewingArea)
-
-    // restart the enemy spawning task
-    if (spawnEnemyTask !== null) {
-        spawnEnemyTask.cancel()
-    }
-    spawnEnemyTask = new DelayedTask(() => {
-        const enemy = Enemy.spawn(Math.random() < 0.5 ? EnemyType.ChompyBoi : EnemyType.Squid, 100, new Vector3(24, 25, 2), new Vector3(0, 0, 0))
-    }, 4, true)
-
-    // debug - spawn turrets in all locations
-    /*for (let p of TurretManagementSystem.instance.__turretLocations) {
-        const t = Math.round(Math.random() * TurretType.Generator)
-        switch (t) {
-            case 0:
-                new Turret(TurretType.Gun, p)
-                break;
-            case 1:
-                new Turret(TurretType.Rockets, p)
-                break;
-            case 2:
-                new Turret(TurretType.Mortar, p)
-                break;
-            case 3:
-                new Turret(TurretType.Stun, p)
-                break;
-            case 4:
-                new Turret(TurretType.Generator, p)
-                break;
-        }
-    }*/
 }
 
 // load the elevator shaft

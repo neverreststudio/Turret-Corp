@@ -92,7 +92,7 @@ export class TurretManagementSystem implements ISystem {
         const newIcon = new Entity()
 
         // initialise to shrunk away
-        newIcon.addComponent(new Transform({ scale: Vector3.Zero() }))
+        newIcon.addComponent(new Transform({ position: new Vector3(24, -10, 32), scale: Vector3.Zero() }))
 
         // set up the shape with custom uvs
         const shape = new PlaneShape()
