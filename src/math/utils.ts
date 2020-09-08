@@ -19,6 +19,14 @@ export class MathUtils {
         )
     }
 
+    static getForwardVectorQ(_rotation: Quaternion): Vector3 {
+        return new Vector3(
+            2 * (_rotation.x * _rotation.z + _rotation.w * _rotation.y),
+            2 * (_rotation.y * _rotation.z - _rotation.w * _rotation.x),
+            1 - 2 * (_rotation.x * _rotation.x + _rotation.y * _rotation.y)
+        )
+    }
+
     static getRightVector(_angles: Vector3): Vector3 {
         const angles = _angles.add(new Vector3(0, 90, 0)).scale(DEG2RAD)
         return new Vector3(

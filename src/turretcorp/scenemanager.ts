@@ -1,6 +1,8 @@
 /* imports */
 
 import { ParallaxComponent } from "../vfx/parallax"
+import { EnemySystem } from "./enemy"
+import { DebugRay } from "../debug/ray"
 
 /* scene management */
 
@@ -25,6 +27,8 @@ export class SceneManager {
     windowLayer1: Entity
     windowLayer2: Entity
     windowLayer3: Entity
+    serverLeft: Entity
+    serverRight: Entity
 
     /* constructor */
 
@@ -184,13 +188,18 @@ export class SceneManager {
 
         // todo : load in the servers
         const serverShape = new GLTFShape("src/models/interior/server.glb")
-        const leftServer = new Entity()
-        leftServer.addComponent(new Transform({ position: new Vector3(7, 23, 58), rotation: Quaternion.Euler(0, -90, 0), scale: new Vector3(3, 3, 3) }))
-        leftServer.addComponent(serverShape)
-        engine.addEntity(leftServer)
-        const rightServer = new Entity()
-        rightServer.addComponent(new Transform({ position: new Vector3(41, 23, 58), rotation: Quaternion.Euler(0, 90, 0), scale: new Vector3(3, 3, 3) }))
-        rightServer.addComponent(serverShape)
-        engine.addEntity(rightServer)
+        this.serverLeft = new Entity()
+        this.serverLeft.addComponent(new Transform({ position: new Vector3(7, 23, 58), rotation: Quaternion.Euler(0, -90, 0), scale: new Vector3(3, 3, 3) }))
+        this.serverLeft.addComponent(serverShape)
+        this.__interiorEntities.push(this.serverLeft)
+        this.serverRight = new Entity()
+        this.serverRight.addComponent(new Transform({ position: new Vector3(41, 23, 58), rotation: Quaternion.Euler(0, 90, 0), scale: new Vector3(3, 3, 3) }))
+        this.serverRight.addComponent(serverShape)
+        this.__interiorEntities.push(this.serverRight)
+
+        // debug - render out the proposed enemy paths
+        for (let i = 0; i < EnemySystem.enemyPath.length - 1; i++) {
+            this.__interiorEntities.push(new DebugRay(EnemySystem.enemyPath[i].subtract(new Vector3(0, 2, 0)), EnemySystem.enemyPath[i + 1].subtract(new Vector3(0, 2, 0)), 0, false))
+        }
     }
 }

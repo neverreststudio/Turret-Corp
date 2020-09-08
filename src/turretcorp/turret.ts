@@ -157,9 +157,10 @@ export class Turret extends Entity {
     /* static fields */
 
     // reusable meshes
-    static __gunBaseShape: GLTFShape
-    static __gunPitcherShape: GLTFShape
+    static __baseShape: GLTFShape
+    static __gunHeadShape: GLTFShape
     static __gunBarrelShape: GLTFShape
+    static __rocketsHeadShape: GLTFShape
 
     // reusable audio
     static __gunFireAudio: AudioClip
@@ -172,13 +173,13 @@ export class Turret extends Entity {
         super()
 
         // ensure the shared mesh is loaded
-        if (!Turret.__gunBaseShape || Turret.__gunBaseShape === null) {
+        if (!Turret.__baseShape || Turret.__baseShape === null) {
             //Turret.__gunBaseShape = new GLTFShape("src/models/bitgem/turret-gun-base.glb")
-            Turret.__gunBaseShape = new GLTFShape("src/models/bitgem/matt-gun-base.glb")
+            Turret.__baseShape = new GLTFShape("src/models/bitgem/matt-gun-base.glb")
         }
-        if (!Turret.__gunPitcherShape || Turret.__gunPitcherShape === null) {
+        if (!Turret.__gunHeadShape || Turret.__gunHeadShape === null) {
             //Turret.__gunPitcherShape = new GLTFShape("src/models/bitgem/turret-gun-pitcher.glb")
-            Turret.__gunPitcherShape = new GLTFShape("src/models/bitgem/matt-gun-head.glb")
+            Turret.__gunHeadShape = new GLTFShape("src/models/bitgem/matt-gun-head.glb")
         }
         if (!Turret.__gunBarrelShape || Turret.__gunBarrelShape === null) {
             Turret.__gunBarrelShape = new GLTFShape("src/models/bitgem/matt-gun-barrel.glb")
@@ -193,7 +194,7 @@ export class Turret extends Entity {
         this.addComponent(new Transform({ position: _position }))
 
         // setup the renderer
-        this.addComponent(Turret.__gunBaseShape)
+        this.addComponent(Turret.__baseShape)
 
         // setup the turret component
         const turretFireAudio = new AudioSource(Turret.__gunFireAudio)
@@ -209,7 +210,7 @@ export class Turret extends Entity {
         const pitcher = new Entity()
         //pitcher.addComponent(new Transform({ position: new Vector3(0, 1, 0) }))
         pitcher.addComponent(new Transform({ position: new Vector3(0, 1.4, 0) }))
-        pitcher.addComponent(Turret.__gunPitcherShape)
+        pitcher.addComponent(Turret.__gunHeadShape)
         turretComponent.pitcher = pitcher.getComponent(Transform)
 
         // setup the barrel element

@@ -1,5 +1,7 @@
 /* imports */
 
+import * as ui from "../node_modules/@dcl/ui-utils/index"
+
 import { DebugRay, DebugRayComponent, DebugRaySystem } from "./debug/ray"
 import { AnglesSpring, AnglesSpringSystem, PositionSpring, PositionSpringSystem } from "./physics/spring"
 import { ParallaxComponent, ParallaxSystem } from "./vfx/parallax"
@@ -37,6 +39,17 @@ engine.addSystem(new EnemySystem())
 engine.addSystem(new TurretSystem())
 
 /* scene setup */
+
+// fill in the floor
+const floorShape = new GLTFShape("src/models/FloorBaseGrass_01/FloorBaseGrass_01.glb")
+for (let x = 0; x < 3; x++) {
+    for (let z = 0; z < 4; z++) {
+        const floorEntity = new Entity()
+        floorEntity.addComponent(new Transform({ position: new Vector3(x * 16 + 8, 0, z * 16 + 8) }))
+        floorEntity.addComponent(floorShape)
+        engine.addEntity(floorEntity)
+    }
+}
 
 // debug - move player straight to elevator (slight offset to prevent collision flip out)
 movePlayerTo(new Vector3(16, 0, 0), new Vector3(24, 1, 0))
@@ -116,16 +129,16 @@ elevator.onReachedTop = (_elevator: ElevatorComponent) => {
 
     // debug - spawn turrets in all locations
     const turretLocations: Vector3[] = [
-        new Vector3(8, 24, 12),
-        new Vector3(40, 24, 8),
-        new Vector3(16, 24, 20),
-        new Vector3(32, 24, 20),
-        new Vector3(32, 24, 30),
-        new Vector3(12, 24, 36),
-        new Vector3(12, 24, 50),
-        new Vector3(24, 24, 42),
-        new Vector3(40, 24, 42),
-        new Vector3(32, 24, 50)
+        new Vector3(8, 24.5, 12),
+        new Vector3(40, 24.5, 8),
+        new Vector3(16, 24.5, 20),
+        new Vector3(32, 24.5, 20),
+        new Vector3(32, 24.5, 30),
+        new Vector3(12, 24.5, 36),
+        new Vector3(12, 24.5, 50),
+        new Vector3(24, 24.5, 42),
+        new Vector3(40, 24.5, 42),
+        new Vector3(32, 24.5, 50)
     ]
     for (let p of turretLocations) {
         new Turret(p)
@@ -192,14 +205,19 @@ Input.instance.subscribe("BUTTON_DOWN", ActionButton.PRIMARY, false, (e) => {
 
 
 // debug - spawn an enemy on the ground
-const testEnemy = new Enemy(Math.random() < 0.5 ? EnemyType.ChompyBoi : EnemyType.Squid, new Vector3(8, 2, 8), Vector3.Zero()).getComponent(EnemyComponent)
-testEnemy.targetPosition = new Vector3(MathUtils.getRandomBetween(2, 14), 2, MathUtils.getRandomBetween(2, 14))
+const testEnemy = new Enemy(Math.random() < 0.5 ? EnemyType.ChompyBoi : EnemyType.Squid, new Vector3(24, 2, 32), Vector3.Zero()).getComponent(EnemyComponent)
+testEnemy.targetPosition = new Vector3(MathUtils.getRandomBetween(16, 32), 2, MathUtils.getRandomBetween(16, 48))
 new DelayedTask(() => {
-    testEnemy.targetPosition = new Vector3(MathUtils.getRandomBetween(2, 14), 2, MathUtils.getRandomBetween(2, 14))
+    testEnemy.targetPosition = new Vector3(MathUtils.getRandomBetween(16, 32), 2, MathUtils.getRandomBetween(16, 48))
 }, 1, true)
 
 // debug - spawn a turret
-const myTurret = new Turret(new Vector3(8, 0, 8))
+const myTurret = new Turret(new Vector3(24, 0, 32))
+
+// debug - occasionally report out the player posisiton
+/*new DelayedTask(() => {
+    ui.displayAnnouncement(Camera.instance.position.x + ", " + Camera.instance.position.y + ", " + Camera.instance.position.z)
+}, 5, true)*/
 
 /*
 

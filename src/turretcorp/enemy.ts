@@ -13,7 +13,7 @@ export class EnemySystem implements ISystem {
     __allEnemies = engine.getComponentGroup(EnemyComponent)
 
     // ai data
-    enemyPath = [
+    static enemyPath = [
         new Vector3(24, 25, 4),
         new Vector3(24, 25, 12),
         new Vector3(32, 25, 12),
@@ -25,16 +25,6 @@ export class EnemySystem implements ISystem {
         new Vector3(21, 25, 50),
         new Vector3(24, 25, 56)
     ]
-
-    /* constructor */
-
-    constructor() {
-
-        // debug - render out the proposed enemy paths
-        for (let i = 0; i < this.enemyPath.length - 1; i++) {
-            new DebugRay(this.enemyPath[i].subtract(new Vector3(0, 2, 0)), this.enemyPath[i + 1].subtract(new Vector3(0, 2, 0)))
-        }        
-    }
 
     /* implementation of ISystem */
 
@@ -59,8 +49,8 @@ export class EnemySystem implements ISystem {
 
             // check if we don't have a target position
             if (!enemy.targetPosition) {
-                enemy.pathIndex = Math.min(this.enemyPath.length - 1, Math.max(0, enemy.pathIndex))
-                enemy.targetPosition = this.enemyPath[enemy.pathIndex]
+                enemy.pathIndex = Math.min(EnemySystem.enemyPath.length - 1, Math.max(0, enemy.pathIndex))
+                enemy.targetPosition = EnemySystem.enemyPath[enemy.pathIndex]
             }
 
             // check the remaining distance
@@ -68,10 +58,10 @@ export class EnemySystem implements ISystem {
             if (dist.length() < 2) {
                 if (enemy.pathIndex > -1) {
                     enemy.pathIndex++
-                    if (enemy.pathIndex >= this.enemyPath.length) {
+                    if (enemy.pathIndex >= EnemySystem.enemyPath.length) {
                         enemy.pathIndex = 0
                     }
-                    enemy.targetPosition = this.enemyPath[enemy.pathIndex]
+                    enemy.targetPosition = EnemySystem.enemyPath[enemy.pathIndex]
                 }
             }
 

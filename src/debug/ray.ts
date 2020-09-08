@@ -55,7 +55,7 @@ export class DebugRay extends Entity {
     
     static __material: Material
 
-    constructor(_start: Vector3, _end: Vector3, _duration: number = 0) {
+    constructor(_start: Vector3, _end: Vector3, _duration: number = 0, _addToEngine: boolean = true) {
 
         // ensure a shared material
         if (!DebugRay.__material || DebugRay.__material === null) {
@@ -82,6 +82,8 @@ export class DebugRay extends Entity {
         this.addComponent(boxShape)
 
         // automatically register with the engine
-        engine.addEntity(this)
+        if (_addToEngine) {
+            engine.addEntity(this)
+        }
     }
 }
