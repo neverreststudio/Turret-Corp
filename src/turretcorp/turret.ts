@@ -285,6 +285,7 @@ export class Turret extends Entity {
         if (!Turret.__baseShape || Turret.__baseShape === null) {
             //Turret.__gunBaseShape = new GLTFShape("src/models/bitgem/turret-gun-base.glb")
             Turret.__baseShape = new GLTFShape("src/models/bitgem/matt-gun-base.glb")
+            Turret.__baseShape.isPointerBlocker = false
         }
         if (!Turret.__gunHeadShape || Turret.__gunHeadShape === null) {
             //Turret.__gunPitcherShape = new GLTFShape("src/models/bitgem/turret-gun-pitcher.glb")

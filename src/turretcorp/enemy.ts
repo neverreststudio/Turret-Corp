@@ -245,7 +245,7 @@ export class EnemyComponent {
         }, 1.5)
 
         // work out how much of a nudge to give
-        const nudge = this.position.subtract(_location).normalize().scale(_damage * 1)
+        const nudge = this.position.subtract(_location).normalize().scale(Math.min(5, _damage * 0.25))
         nudge.y = Math.min(1, Math.max(-1, nudge.y))
         this.__velocity.addInPlace(nudge)
         this.__turnVelocity += (1 - (Math.random() * 2)) * _damage * 2
