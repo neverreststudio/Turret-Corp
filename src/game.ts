@@ -17,6 +17,7 @@ import { Elevator, ElevatorComponent, ElevatorSystem } from "./turretcorp/elevat
 import { StatBarSystem } from "./turretcorp/statbar"
 import { TurretSystem, Turret, TurretComponent, TurretType } from "./turretcorp/turret"
 import { SmokeParticles } from "./turretcorp/smokeparticles"
+import { TurretManagementSystem } from "./turretcorp/turretmanagement"
 
 /* register systems */
 
@@ -38,6 +39,7 @@ engine.addSystem(new ElevatorSystem())
 engine.addSystem(new StatBarSystem())
 engine.addSystem(new EnemySystem())
 engine.addSystem(new TurretSystem())
+engine.addSystem(new TurretManagementSystem())
 
 /* scene setup */
 
@@ -156,19 +158,7 @@ elevator.onReachedTop = (_elevator: ElevatorComponent) => {
     }, 4, true)
 
     // debug - spawn turrets in all locations
-    const turretLocations: Vector3[] = [
-        new Vector3(8, 24.5, 12),
-        new Vector3(40, 24.5, 8),
-        new Vector3(16, 24.5, 20),
-        new Vector3(32, 24.5, 20),
-        new Vector3(32, 24.5, 30),
-        new Vector3(12, 24.5, 36),
-        new Vector3(12, 24.5, 50),
-        new Vector3(24, 24.5, 42),
-        new Vector3(40, 24.5, 42),
-        new Vector3(32, 24.5, 50)
-    ]
-    for (let p of turretLocations) {
+    /*for (let p of TurretManagementSystem.instance.__turretLocations) {
         const t = Math.round(Math.random() * TurretType.Generator)
         switch (t) {
             case 0:
@@ -187,7 +177,7 @@ elevator.onReachedTop = (_elevator: ElevatorComponent) => {
                 new Turret(TurretType.Generator, p)
                 break;
         }
-    }
+    }*/
 }
 
 // load the elevator shaft
