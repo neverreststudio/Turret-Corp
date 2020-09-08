@@ -2,6 +2,7 @@ import * as ui from "../../node_modules/@dcl/ui-utils/index"
 import { DelayedTask } from "../tasks/delayedtasks"
 import { MathUtils } from "../math/utils"
 import { DebugRay } from "../debug/ray"
+import { StatBar, StatBarComponent } from "./statbar"
 
 export enum GameState {
     Outside,
@@ -18,7 +19,7 @@ export class GameManagerSystem implements ISystem {
 
     /* field definitions */
 
-    // component group
+    // references
     gameManagers = engine.getComponentGroup(GameManagerBehaviour)
     messageBus = new MessageBus()
     isPrimaryPlayer = true
@@ -137,10 +138,17 @@ export class GameManagerBehaviour {
     state = GameState.Outside
     isPrimaryPlayer = true // TODO : needs to be determined through synchronisation
 
+    playerHealthBar: StatBarComponent
+
     /* constructor */
 
     constructor() {
         GameManagerBehaviour.instance = this
+
+        this.playerHealthBar = new StatBar(3).getComponent(StatBarComponent)
+        this.playerHealthBar.current = 100
+        this.playerHealthBar.max = 100
+        this.playerHealthBar.position = new Vector3(24, -10, 32)
     }
 
     /* methods */
@@ -151,6 +159,15 @@ export class GameManagerBehaviour {
         }
         this.previousState = this.state
         this.state = _state
+
+        // update player health bar accordingly
+        if (this.state === GameState.InArena) {
+            this.playerHealthBar.current = this.playerHealthBar.max
+            this.playerHealthBar.position = new Vector3(24, 25, 56)
+        }
+        else {
+            this.playerHealthBar.position = new Vector3(24, -10, 32)
+        }
     }
 }
 

@@ -24,10 +24,10 @@ export class StatBarSystem implements ISystem {
             transform.rotation = Quaternion.Euler(0, targetAngle, 0)
 
             // update the inner bar
-            const offset = 0.03
+            const offset = 0.03 * statBar.scale
             const scale = new Vector3(1 - (offset / transform.scale.x) * 2, 1 - (offset / transform.scale.y) * 2, 1)
             statBar.inner.scale = new Vector3(statBar.current / statBar.max, 1, 1).multiply(scale)
-            statBar.inner.position = new Vector3((1 - statBar.inner.scale.x) / 2 - offset, 0, 0.01)
+            statBar.inner.position = new Vector3((1 - statBar.inner.scale.x) / 2 - offset / transform.scale.x, 0, 0.01)
         }
     }
 }
@@ -44,7 +44,8 @@ export class StatBarComponent {
     current = 100
     max = 100
 
-    // references
+    // runtime
+    scale: number
     position: Vector3
 }
 
@@ -62,7 +63,7 @@ export class StatBar extends Entity {
 
     /* constructor */
 
-    constructor() {
+    constructor(_scale: number) {
 
         // call the base constructor
         super()
@@ -112,10 +113,11 @@ export class StatBar extends Entity {
         }
 
         // set up the outer bar
-        this.addComponent(new Transform({ scale: new Vector3(1, 0.2, 1) }))
+        this.addComponent(new Transform({ scale: new Vector3(1, 0.2, 1).scale(_scale) }))
         this.addComponent(StatBar.__outerShape)
         this.addComponent(StatBar.__material)
         const statBarComponent = new StatBarComponent()
+        statBarComponent.scale = _scale
         this.addComponent(statBarComponent)
 
         // set up the inner bar

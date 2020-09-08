@@ -3,6 +3,7 @@ import { SmokeParticles } from "./smokeparticles"
 import { DebugRay } from "../debug/ray"
 import { StatBar, StatBarComponent } from "./statbar"
 import { DelayedTask } from "../tasks/delayedtasks"
+import { GameManager, GameManagerBehaviour } from "./gamemanager"
 
 export class EnemySystem implements ISystem {
 
@@ -61,7 +62,7 @@ export class EnemySystem implements ISystem {
                 if (enemy.pathIndex > -1) {
                     enemy.pathIndex++
                     
-                    // if the enemy has reach the goal, stay there, do an attack, and blow up
+                    // if the enemy has reached the goal, stay there, do an attack, and blow up
                     if (enemy.pathIndex >= EnemySystem.enemyPath.length) {
                         enemy.pathIndex = -1
                         enemy.isActive = false
@@ -70,6 +71,7 @@ export class EnemySystem implements ISystem {
                         enemy.__attackAnimation.reset()
                         enemy.__attackAnimation.play()
                         new DelayedTask(() => {
+                            GameManagerBehaviour.instance.playerHealthBar.current -= enemy.damage
                             enemy.takeDamage(e, 9999, enemy.position)
                         }, enemy.type === EnemyType.ChompyBoi ? 1.35 : 1.15)
                     }
@@ -144,6 +146,7 @@ export class EnemyComponent {
 
     // behaviour
     type: EnemyType
+    damage = 1
 
     // movement
     position: Vector3
