@@ -158,57 +158,7 @@ towerShaft.addComponent(new GLTFShape("src/models/bitgem/tower-shaft.glb"))
 towerShaft.addComponent(new Transform({ position: new Vector3(24, 0, 32) }))
 engine.addEntity(towerShaft)
 
-/* tests */
-
-// create a particle spawner
-/*const mySpawner = new ParticleSpawner()
-
-mySpawner.particleMinLifetime = 0.5
-mySpawner.particleMaxLifetime = 0.7
-
-mySpawner.spawnRate = 0
-mySpawner.maxPoolSize = 20
-
-mySpawner.position = new Vector3(24, 2, 0.5)
-mySpawner.angles = new Vector3(0, 0, 0)
-
-mySpawner.spawnAngle = 60.0
-
-mySpawner.particleMinSpeed = 15
-mySpawner.particleMaxSpeed = 20
-
-mySpawner.particleDampeningSpeed = 1
-mySpawner.particleDampeningRate = 10
-
-mySpawner.particleGravity = new Vector3(0, -6, 0)
-
-mySpawner.particleMinScale = 0.05
-mySpawner.particleMaxScale = 0.15
-mySpawner.particleScaleOverTime = true
-mySpawner.particleScaleOverTimeCurve = new BezierCurve(
-    new Vector2(0, 0),
-    new Vector2(0.6, 1),
-    new Vector2(0.7, 1),
-    new Vector2(0.9, 1),
-    new Vector2(1, 0)
-)
-
-const particleShape = new SphereShape()
-particleShape.withCollisions = false
-mySpawner.onCreateParticle = (_entity: Entity, _particle: ParticleBehaviour) => {
-    _entity.addComponent(particleShape)
-}
-
-const mySpawnerObject = new Entity()
-mySpawnerObject.addComponent(mySpawner)
-engine.addEntity(mySpawnerObject)*/
-
-// mySpawner.spawn()
-
-
-
-
-// debug - spawn an enemy on the ground
+// debug - spawn enemies on the ground
 const testEnemyLocations = [
     new Vector3(16, 2, 16),
     new Vector3(32, 2, 16),
@@ -225,65 +175,10 @@ for (let i = 0; i < testEnemyLocations.length; i++) {
         testEnemy.targetPosition = new Vector3(MathUtils.getRandomBetween(16, 32), 2, MathUtils.getRandomBetween(16, 48))
     }, 1, true)
 }
-// debug - spawn a turret
+
+// debug - spawn a turret on the ground
 const myTurret = new Turret(TurretType.Gun, new Vector3(24, 0, 32)).getComponent(TurretComponent)
 myTurret.damage = 4
 myTurret.rateOfFire = 3
 myTurret.aimForce = 20
 myTurret.aimDampening = 5
-
-// debug - occasionally report out the player posisiton
-/*new DelayedTask(() => {
-    ui.displayAnnouncement(Camera.instance.position.x + ", " + Camera.instance.position.y + ", " + Camera.instance.position.z)
-}, 5, true)*/
-
-/*
-
-const qub = new Entity()
-qub.addComponent(new Transform({ position: new Vector3(8, 0.5, 15.5), scale: new Vector3(16, 1, 1) }))
-qub.addComponent(new BoxShape())
-engine.addEntity(qub)
-const qub2 = new Entity()
-qub2.addComponent(new Transform({ position: new Vector3(8, 7.5, 15.5), scale: new Vector3(16, 1, 1) }))
-qub2.addComponent(new BoxShape())
-engine.addEntity(qub2)
-const qub3 = new Entity()
-qub3.addComponent(new Transform({ position: new Vector3(0.5, 4, 15.5), scale: new Vector3(1, 8, 1) }))
-qub3.addComponent(new BoxShape())
-engine.addEntity(qub3)
-const qub4 = new Entity()
-qub4.addComponent(new Transform({ position: new Vector3(15.5, 4, 15.5), scale: new Vector3(1, 8, 1) }))
-qub4.addComponent(new BoxShape())
-engine.addEntity(qub4)*/
-
-
-
-
-
-
-/*const tower = new Entity()
-tower.addComponent(new Transform({ position: new Vector3(32, 0, 24), scale: new Vector3(0.9, 0.9, 0.9) }))
-tower.addComponent(new GLTFShape("src/models/exterior/tower.glb"))
-engine.addEntity(tower)*/
-
-
-/*const sentry = new Entity()
-let sentryTransform = new Transform({ position: new Vector3(4, 0.7, 4), rotation: Quaternion.Euler(0, 225, 0), scale: new Vector3(2, 2, 2) })
-sentry.addComponent(sentryTransform)
-const sentryShape = new GLTFShape("src/models/enemies/sentry.glb")
-sentry.addComponent(sentryShape)
-engine.addEntity(sentry)
-sentryTransform = sentry.children[0].getComponent(Transform)
-sentryTransform.position = new Vector3(0, -100, 0)*/
-
-/*const server = new Entity()
-server.addComponent(new Transform({ position: new Vector3(32, 0, 24), scale: new Vector3(0.9, 0.9, 0.9) }))
-server.addComponent(new GLTFShape("src/models/interior/server.glb"))
-engine.addEntity(server)*/
-
-
-/*const server = new Entity()
-server.addComponent(new Transform({ position: new Vector3(32, 0, 24), scale: new Vector3(0.9, 0.9, 0.9) }))
-server.addComponent(new GLTFShape("src/textures/grasstest.glb"))
-engine.addEntity(server)
-*/
